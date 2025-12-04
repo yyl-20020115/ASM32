@@ -5,8 +5,8 @@ internal class Program
     static void Main(string[] args)
     {
         List<string> lines = [];
-        using var reader = new StreamReader("ASM244EX.ASM");
-        using var writer = new StreamWriter("ASM244GX.ASM");
+        using var reader = new StreamReader("ASM244.ASM");
+        using var writer = new StreamWriter("ASM244D.ASM");
         string? line;
         while (null != (line = reader.ReadLine()))
         {
@@ -29,7 +29,8 @@ internal class Program
                     if (!quoting && (c == ',' || char.IsWhiteSpace(c)))
                     {
                         var val = builder.ToString();
-                        parts.Add(builder.ToString());
+                        if(val!="\"\"" && val!="''")
+                            parts.Add(val);
                         if (p == 0) break;
                         builder.Clear();
                         continue;
@@ -44,7 +45,11 @@ internal class Program
                     {
                         var quote = part[0];
                         var last = part[^2];
-                        newParts.Add($"{part[..^2]}{quote}, '{last}'+ 080H");
+                        var before = part[..^2];
+                        var result = before.Length>1
+                            ? $"{before}{quote}, '{last}'+ 080H"
+                            : $"'{last}' + 080H";
+                        newParts.Add(result);
                     }
                     else if (!string.IsNullOrEmpty(part))
                     {
