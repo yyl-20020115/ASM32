@@ -3687,7 +3687,7 @@ NDPI:
 
 NDPL:
 	DB	10
-	DB	"", 'd'+ 080H
+	DB	'd' + 080H
 	DB	1+NEEDOP+ONEREG+REAL+EXTENDED,0
 	DB	"d", 'z'+ 080H
 	DB	1,0EEH
@@ -3717,7 +3717,7 @@ NDPM:
 
 NDPO:
 	DB	1
-	DB	"", 'p'+ 080H
+	DB	'p' + 080H
 	DB	NEEDOP+1,0	;Flag special handling
 
 NDPN:
@@ -3743,7 +3743,7 @@ NDPR:
 
 NDPS:
 	DB	12
-	DB	"", 't'+ 080H
+	DB	't' + 080H
 	DB	5+NEEDOP+ONEREG+REAL,0D0H
 	DB	"t", 'p'+ 080H
 	DB	7+NEEDOP+ONEREG+REAL+EXTENDED,0D8H
@@ -3793,7 +3793,6 @@ NDPY:
 	DB	1,0F1H
 	DB	"l2xp", '1'+ 080H
 	DB	1,0F9H
-
 
 
 OPTAB:
