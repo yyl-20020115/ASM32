@@ -160,7 +160,7 @@ DO_OPEN:
    MOV   EDX,LSTNAME
    CALL  CREATE_FILE
    MOV   [LSTFILE],EAX
-
+;------------------------------------------------------------------------------
 ;Initialize for first pass
    XOR   EAX,EAX
 
@@ -181,6 +181,7 @@ DO_OPEN:
    MOV   DWORD[BCOUNT],4  ;CODE BYTES PER RELOCATION BYTE
    MOV   ECX,BUFSIZ
 ;Assemble each line of code
+;------------------------------------------------------------------------------
 
 _LOOP:
    CALL  NEXTCHR     ;Get first character on line
@@ -204,7 +205,6 @@ ENDJ:
    JMP   _END
 ENDLN:
    XOR   AL,AL    ;Flag no errors on line
-   INC   DWORD [LINE_COUNT]
 ENDLIN:
 ;AL = error code for line. Stack depth unknown
    MOV ESP,[STACK_]
@@ -225,7 +225,7 @@ GETEOL:
    JMP GETEOL
 NEXLIN_RET:
    RET
-   
+
 ABORT:
    MOV   EBX,NOMEM
 PRERR:
@@ -235,6 +235,7 @@ PRERR:
 QUIT:
    XOR   EAX,EAX
    RET
+
 CREATE_FILE:
    PUSH   WRITE_FLAG
    PUSH   EDX
@@ -263,12 +264,20 @@ NEXTCHR: ;DONE
    PUSH  EAX    ;AH must be saved
 
    PUSH  [SRCFILE]
-   PUSH  ECX
+   PUSH  BUFSIZ
    PUSH  1
    PUSH  ESI
    CALL _fread
    ADD   ESP,16
+   ;COUNT ALL READ BYTES
+   ;
+   MOV   ECX,DWORD[LAST_READ_CHAR_COUNT]
+   ADD   DWORD[OVERALL_CHAR_POS],ECX
+   MOV   DWORD[LAST_READ_CHAR_COUNT],EAX
+   ADD   DWORD[TOTAL_READ_CHAR_COUNT],EAX
 
+   XOR   EAX,EAX
+   MOV   DWORD[CURRENT_CHAR_MAX_DELTA_POS],EAX
    XCHG  EAX,EDX    ;Put error code in DL
    POP   EAX    ;Restore AH
    MOV   AL,DL    ;Error code back in AL
@@ -282,7 +291,26 @@ NEXTCHR: ;DONE
    MOV   AL,1AH      ;Possibly signal End of File
    JZ NOMOD    ;If nothing read
 GETCH:
+   MOV   DWORD[CHAR_POS_ADVANCED],0
    LODSB
+;UPDATE MAX DELTA
+   PUSH  EAX
+   PUSH  ESI
+   MOV   EAX,SRCBUF
+   SUB   ESI,EAX
+   CMP   ESI, DWORD[CURRENT_CHAR_MAX_DELTA_POS]
+   JB    SKIP_SET_MAX_DELTA
+   MOV   DWORD[CURRENT_CHAR_MAX_DELTA_POS],ESI
+   MOV   DWORD[CHAR_POS_ADVANCED],1
+SKIP_SET_MAX_DELTA: 
+   POP   ESI
+   POP   EAX
+   CMP   AL,10
+   JNZ	 SKIP_LINE_END
+   CMP   DWORD[CHAR_POS_ADVANCED],1
+   JNZ   SKIP_LINE_END
+   INC   DWORD [LINE_COUNT]
+SKIP_LINE_END:
    CMP   ESI,SRCBUF+BUFSIZ
    JNZ   NOMOD
    MOV   ESI,SRCBUF
@@ -290,7 +318,6 @@ NOMOD:
    MOV   [BUFPT],ESI
    MOV   [CHR],AL
    RET
-
 
 MROPS:
 
@@ -893,7 +920,7 @@ GOTIT:
 
 ERR4: JMP   ERROR
 
-GETLET: ;SAVE LABEL AND RETURN ':'
+GET_LETTER: ;SAVE LABEL AND RETURN ':'
    CALL  SCANB
    CMP   AL,EOL
    STC
@@ -1058,7 +1085,7 @@ SCANREG:
    XOR   AL,AL
 SCANREG_RET:
    RET
-
+;-----------------------------------------------
 LOOK:
    MOV   CH,[EBX]
    INC   EBX
@@ -1074,13 +1101,11 @@ LOOK:
    ROL   AL,1
    CMP   AL,CL
    JNC   SMALL
+
    INC   CH
    INC   CH
-    INC CH
-    INC CH
+
 SMALL:
-    INC CH
-    INC CH
    PUSH  EDX
    XOR   EDX,EDX
    MOV   DL,CH
@@ -1100,7 +1125,7 @@ LOOKRET:
    CMP   AL,3  ;RET has 3 letters
    JNZ   LOOKUP
    DEC   EBX    ;EBX left link, EBX-1 last char of "RET"
-   OR BYTE[EBX],080H
+   OR	 BYTE[EBX],080H
    MOV   EDX,RETSTR+2
 CHKRET:
    MOV   ESI,EDX
@@ -1210,7 +1235,7 @@ SKIP_ABORT:
    PUSH  EDX
    MOV   EBX,LENID
    XOR   ECX,ECX
-   MOV   CL,[EBX]
+   MOV   CL,[EBX] ;CL=id length
    INC   CL
    CLD
    MOV   ESI,EBX
@@ -1226,7 +1251,7 @@ NILIFY:
    DEC   CH
    JNZ   NILIFY
    XOR   AL,AL    ;Set zero flag
-   MOV   [EBX],AL     ;Zero defined flag
+   MOV   [EBX],AL     ;Zero defined flag ;EBX+1:Value 
    POP   EDX    ;Restore pointer to node
    RET
 
@@ -1244,7 +1269,7 @@ CPSLP: ;COMPARE EDX: EBX (CH=LENGTH)
 CPSLP_RET:
    RET
 
-GETLAB:
+GET_LABEL:
    MOV   EBX,0
    MOV   [LABPT],EBX
    MOV   BYTE[FLAG],-1
@@ -1254,7 +1279,7 @@ GETLAB:
    JC NOT1
    OR DH,001H
 NOT1:
-   CALL  GETLET
+   CALL  GET_LETTER
    JC CPSLP_RET
    CMP   AL,':'
    JNZ   LABCHK
@@ -1268,7 +1293,7 @@ _LABEL:
    MOV   AL,[CHKLAB]
    OR AL,AL
    JZ _LABEL_SKIP
-   JMP   GETLET
+   JMP   GET_LETTER
 _LABEL_SKIP:
    CALL  LOOKUP ;EBX:Left link
    MOV   CL,11
@@ -1278,7 +1303,7 @@ _LABEL_SKIP:
    INC   EBX
    MOV   [EBX],EDX
    MOV   [LABPT],EBX
-   JMP   GETLET
+   JMP   GET_LETTER
 
 ERR5: JMP   ERROR
 
@@ -1286,7 +1311,7 @@ ASMLIN:
    MOV   BYTE[MAXFLG],1 ;Allow only B and W flags normally
    MOV   EBX,[PC]
    MOV   [OLDPC],EBX
-   CALL  GETLAB
+   CALL  GET_LABEL
    JNC   ASMLIN_SKIP
    JMP   ENDLN
 ASMLIN_SKIP:
@@ -1341,10 +1366,14 @@ FINDOP:
    CALL  CPSLP ;CMP EBX,EDX, CH=LENGTH; EBX++,EDX++
    JZ HAVOP
    XCHG  EAX,EBP
-   MOV   DH,0
+   XOR   EDX,EDX
    MOV   DL,CH
    INC   EDX
    INC   EDX
+   ;4 bytes ptr
+   INC   EDX
+   INC   EDX
+
    ADD   EBX,EDX
    DEC   AH
    JNZ   FINDOP
@@ -2377,7 +2406,7 @@ SKIPLP:
    CALL  NEXTCHR
    CMP   AL,1AH
    JZ _END
-   CALL  GETLAB
+   CALL  GET_LABEL
    JC SKIPLP
    MOV   EDI,LENID
    MOV   ESI,IFEND
@@ -4088,7 +4117,12 @@ IY      DD 0
 HEXPNT  DD 0
 LSTPNT  DD 0
 STACK_  DD 0
-LINE_COUNT DD 0
+LINE_COUNT DD 1
+OVERALL_CHAR_POS DD 0
+LAST_READ_CHAR_COUNT DD 0
+TOTAL_READ_CHAR_COUNT DD 0
+CURRENT_CHAR_MAX_DELTA_POS DD 0
+CHAR_POS_ADVANCED DD 0
 HEXBUF  TIMES HEXBUFSIZ DB 0
 LSTBUF  TIMES LSTBUFSIZ DB 0
 BUFPT   DD 0
