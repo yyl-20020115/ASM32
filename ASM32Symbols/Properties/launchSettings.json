@@ -1,0 +1,9 @@
+{
+  "profiles": {
+    "ASM32Symbols": {
+      "commandName": "Project",
+      "commandLineArgs": "ASM32.ASM",
+      "workingDirectory": "D:\\Working\\ASM32"
+    }
+  }
+}

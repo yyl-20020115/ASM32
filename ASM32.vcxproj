@@ -136,19 +136,18 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="ASM32MAIN.c" />
+  </ItemGroup>
+  <ItemGroup>
+    <Library Include="msvcrt.lib" />
+  </ItemGroup>
+  <ItemGroup>
     <NASM Include="ASM32.ASM">
-      <FileType>Document</FileType>
       <GenerateDebugInformation Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</GenerateDebugInformation>
       <GenerateDebugInformation Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">true</GenerateDebugInformation>
       <GenerateDebugInformation Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</GenerateDebugInformation>
       <GenerateDebugInformation Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</GenerateDebugInformation>
     </NASM>
-  </ItemGroup>
-  <ItemGroup>
-    <ClCompile Include="ASM32MAIN.c" />
-  </ItemGroup>
-  <ItemGroup>
-    <Library Include="msvcrt.lib" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

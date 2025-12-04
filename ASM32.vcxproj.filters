@@ -15,16 +15,16 @@
     </Filter>
   </ItemGroup>
   <ItemGroup>
-    <NASM Include="ASM32.ASM">
-      <Filter>源文件</Filter>
-    </NASM>
-  </ItemGroup>
-  <ItemGroup>
     <ClCompile Include="ASM32MAIN.c">
       <Filter>源文件</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <Library Include="msvcrt.lib" />
+  </ItemGroup>
+  <ItemGroup>
+    <NASM Include="ASM32.ASM">
+      <Filter>源文件</Filter>
+    </NASM>
   </ItemGroup>
 </Project>
