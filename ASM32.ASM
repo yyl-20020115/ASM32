@@ -3065,6 +3065,7 @@ A3:
    DD GRP13
    DB 22H
    DB 'dc'
+
    DD GRP7
    DB 12H
    DB 'aa'
@@ -3596,202 +3597,203 @@ X4:
 ; 8087 MNEMONIC TABLE
 ; Similar to 8086 table above, except NOT distinguished by opcode length
 
-XM1:  ;F2XM1
-   DB 1     ;One opcode
-   DB "xm1",080H
-   DB 1,0F0H
+XM1:	;F2XM1
+	DB	1		;One opcode
+	DB	"xm", '1'+ 080H
+	DB	1,0F0H
 
 NDPA:
-   DB 3
-   DB "dd",080H
-   DB 6+ARITH,0C1H
-   DB "ddp",080H
-   DB NEEDOP+STACKOP,0
-   DB "bs",080H
-   DB 1,0E1H
+	DB	3
+	DB	"d", 'd'+ 080H
+	DB	6+ARITH,0C1H
+	DB	"dd", 'p'+ 080H
+	DB	NEEDOP+STACKOP,0
+	DB	"b", 's'+ 080H
+	DB	1,0E1H
 
 NDPB:
-   DB 2
-   DB "ld",080H
-   DB 7+NEEDOP+MEMORY,20H
-   DB "stp",080H
-   DB 7+NEEDOP+MEMORY,30H
+	DB	2
+	DB	"l", 'd'+ 080H
+	DB	7+NEEDOP+MEMORY,20H
+	DB	"st", 'p'+ 080H
+	DB	7+NEEDOP+MEMORY,30H
 
 NDPC:
-   DB 5
-   DB "om",080H
-   DB 0+ONEREG+REAL,0D1H
-   DB "omp",080H
-   DB 0+ONEREG+REAL,0D9H
-   DB "hs",080H
-   DB 1,0E0H
-   DB "ompp",080H
-   DB 6,0D9H
-   DB "lex",080H
-   DB 3,0E2H
+	DB	5
+	DB	"o", 'm'+ 080H
+	DB	0+ONEREG+REAL,0D1H
+	DB	"om", 'p'+ 080H
+	DB	0+ONEREG+REAL,0D9H
+	DB	"h", 's'+ 080H
+	DB	1,0E0H
+	DB	"omp", 'p'+ 080H
+	DB	6,0D9H
+	DB	"le", 'x'+ 080H
+	DB	3,0E2H
 
 NDPD:
-   DB 6
-   DB "iv",080H
-   DB 6+ARITH,0F1H
-   DB "ivp",080H
-   DB NEEDOP+STACKOP,30H
-   DB "ivr",080H
-   DB 6+ARITH,0F9H
-   DB "ivrp",080H
-   DB NEEDOP+STACKOP,38H
-   DB "ecstp",080H
-   DB 1,0F6H
-   DB "isi",080H
-   DB 3,0E1H
+	DB	6
+	DB	"i", 'v'+ 080H
+	DB	6+ARITH,0F1H
+	DB	"iv", 'p'+ 080H
+	DB	NEEDOP+STACKOP,30H
+	DB	"iv", 'r'+ 080H
+	DB	6+ARITH,0F9H
+	DB	"ivr", 'p'+ 080H
+	DB	NEEDOP+STACKOP,38H
+	DB	"ecst", 'p'+ 080H
+	DB	1,0F6H
+	DB	"is", 'i'+ 080H
+	DB	3,0E1H
 
 NDPE:
-   DB 1
-   DB "ni",080H
-   DB 3,0E0H
+	DB	1
+	DB	"n", 'i'+ 080H
+	DB	3,0E0H
 
 NDPF:
-   DB 1
-   DB "ree",080H
-   DB 5+NEEDOP+ONEREG,0
+	DB	1
+	DB	"re", 'e'+ 080H
+	DB	5+NEEDOP+ONEREG,0
 
 NDPI:
-   DB 13
-   DB "add",080H
-   DB 2+NEEDOP+INTEGER,0
-   DB "ld",080H
-   DB 3+NEEDOP+INTEGER+EXTENDED,0
-   DB "sub",080H
-   DB 2+NEEDOP+INTEGER,20H
-   DB "stp",080H
-   DB 3+NEEDOP+INTEGER+EXTENDED,18H
-   DB "st",080H
-   DB 3+NEEDOP+INTEGER,10H
-   DB "mul",080H
-   DB 2+NEEDOP+INTEGER,8
-   DB "div",080H
-   DB 2+NEEDOP+INTEGER,30H
-   DB "subr",080H
-   DB 2+NEEDOP+INTEGER,28H
-   DB "divr",080H
-   DB 2+NEEDOP+INTEGER,38H
-   DB "com",080H
-   DB 2+NEEDOP+INTEGER,10H
-   DB "comp"
-   DB 2+NEEDOP+INTEGER,18H
-   DB "ncstp",080H
-   DB 1,0F7H
-   DB "nit",080H
-   DB 3,0E3H
+	DB	13
+	DB	"ad", 'd'+ 080H
+	DB	2+NEEDOP+INTEGER,0
+	DB	"l", 'd'+ 080H
+	DB	3+NEEDOP+INTEGER+EXTENDED,0
+	DB	"su", 'b'+ 080H
+	DB	2+NEEDOP+INTEGER,20H
+	DB	"st", 'p'+ 080H
+	DB	3+NEEDOP+INTEGER+EXTENDED,18H
+	DB	"s", 't'+ 080H
+	DB	3+NEEDOP+INTEGER,10H
+	DB	"mu", 'l'+ 080H
+	DB	2+NEEDOP+INTEGER,8
+	DB	"di", 'v'+ 080H
+	DB	2+NEEDOP+INTEGER,30H
+	DB	"sub", 'r'+ 080H
+	DB	2+NEEDOP+INTEGER,28H
+	DB	"div", 'r'+ 080H
+	DB	2+NEEDOP+INTEGER,38H
+	DB	"co", 'm'+ 080H
+	DB	2+NEEDOP+INTEGER,10H
+	DB	"com", 'p'+ 080H
+	DB	2+NEEDOP+INTEGER,18H
+	DB	"ncst", 'p'+ 080H
+	DB	1,0F7H
+	DB	"ni", 't'+ 080H
+	DB	3,0E3H
 
 NDPL:
-   DB 10
-   DB "d",080H
-   DB 1+NEEDOP+ONEREG+REAL+EXTENDED,0
-   DB "dz",080H
-   DB 1,0EEH
-   DB "d1",080H
-   DB 1,0E8H
-   DB "dpi",080H
-   DB 1,0EBH
-   DB "dl2t",080H
-   DB 1,0E9H
-   DB "dl2e",080H
-   DB 1,0EAH
-   DB "dlg2",080H
-   DB 1,0ECH
-   DB "dln2",080H
-   DB 1,0EDH
-   DB "dcw",080H
-   DB 1+NEEDOP+MEMORY,28H
-   DB "denv",080H
-   DB 1+NEEDOP+MEMORY,20H
+	DB	10
+	DB	"", 'd'+ 080H
+	DB	1+NEEDOP+ONEREG+REAL+EXTENDED,0
+	DB	"d", 'z'+ 080H
+	DB	1,0EEH
+	DB	"d", '1'+ 080H
+	DB	1,0E8H
+	DB	"dp", 'i'+ 080H
+	DB	1,0EBH
+	DB	"dl2", 't'+ 080H
+	DB	1,0E9H
+	DB	"dl2", 'e'+ 080H
+	DB	1,0EAH
+	DB	"dlg", '2'+ 080H
+	DB	1,0ECH
+	DB	"dln", '2'+ 080H
+	DB	1,0EDH
+	DB	"dc", 'w'+ 080H
+	DB	1+NEEDOP+MEMORY,28H
+	DB	"den", 'v'+ 080H
+	DB	1+NEEDOP+MEMORY,20H
 
 NDPM:
-   DB 2
-   DB "ul",080H
-   DB 6+ARITH,0C9H
-   DB "ulp",080H
-   DB NEEDOP+STACKOP,8
+	DB	2
+	DB	"u", 'l'+ 080H
+	DB	6+ARITH,0C9H
+	DB	"ul", 'p'+ 080H
+	DB	NEEDOP+STACKOP,8
 
 NDPO:
-   DB 1
-   DB "p",080H
-   DB NEEDOP+1,0  ;Flag special handling
+	DB	1
+	DB	"", 'p'+ 080H
+	DB	NEEDOP+1,0	;Flag special handling
 
 NDPN:
-   DB 1
-   DB "op",080H
-   DB 1,0D0H
+	DB	1
+	DB	"o", 'p'+ 080H
+	DB	1,0D0H
 
 NDPP:
-   DB 3
-   DB "rem",080H
-   DB 1,0F8H
-   DB "tan",080H
-   DB 1,0F2H
-   DB "atan",080H
-   DB 1,0F3H
+	DB	3
+	DB	"re", 'm'+ 080H
+	DB	1,0F8H
+	DB	"ta", 'n'+ 080H
+	DB	1,0F2H
+	DB	"ata", 'n'+ 080H
+	DB	1,0F3H
 
 NDPR:
-   DB 2
-   DB "ndint",080H
-   DB 1,0FCH
-   DB "stor",080H
-   DB 5+NEEDOP+MEMORY,20H
+	DB	2
+	DB	"ndin", 't'+ 080H
+	DB	1,0FCH
+	DB	"sto", 'r'+ 080H
+	DB	5+NEEDOP+MEMORY,20H
 
 NDPS:
-   DB 12
-   DB "t",080H
-   DB 5+NEEDOP+ONEREG+REAL,0D0H
-   DB "tp",080H
-   DB 7+NEEDOP+ONEREG+REAL+EXTENDED,0D8H
-   DB "ub",080H
-   DB 6+ARITH,0E1H
-   DB "ubp",080H
-   DB NEEDOP+STACKOP,0E0H
-   DB "ubr",080H
-   DB 6+ARITH,0E9H
-   DB "ubrp",080H
-   DB NEEDOP+STACKOP,0E8H
-   DB "qrt",080H
-   DB 1,0FAH
-   DB "cale",080H
-   DB 1,0FDH
-   DB "ave",080H
-   DB 5+NEEDOP+MEMORY,30H
-   DB "tcw",080H
-   DB 1+NEEDOP+MEMORY,38H
-   DB "tenv",080H
-   DB 1+NEEDOP+MEMORY,30H
-   DB "tsw",080H
-   DB 5+NEEDOP+MEMORY,38H
+	DB	12
+	DB	"", 't'+ 080H
+	DB	5+NEEDOP+ONEREG+REAL,0D0H
+	DB	"t", 'p'+ 080H
+	DB	7+NEEDOP+ONEREG+REAL+EXTENDED,0D8H
+	DB	"u", 'b'+ 080H
+	DB	6+ARITH,0E1H
+	DB	"ub", 'p'+ 080H
+	DB	NEEDOP+STACKOP,0E0H
+	DB	"ub", 'r'+ 080H
+	DB	6+ARITH,0E9H
+	DB	"ubr", 'p'+ 080H
+	DB	NEEDOP+STACKOP,0E8H
+	DB	"qr", 't'+ 080H
+	DB	1,0FAH
+	DB	"cal", 'e'+ 080H
+	DB	1,0FDH
+	DB	"av", 'e'+ 080H
+	DB	5+NEEDOP+MEMORY,30H
+	DB	"tc", 'w'+ 080H
+	DB	1+NEEDOP+MEMORY,38H
+	DB	"ten", 'v'+ 080H
+	DB	1+NEEDOP+MEMORY,30H
+	DB	"ts", 'w'+ 080H
+	DB	5+NEEDOP+MEMORY,38H
 
 NDPT:
-   DB 1
-   DB "st",080H
-   DB 1,0E4H
+	DB	1
+	DB	"s", 't'+ 080H
+	DB	1,0E4H
 
 NDPW:
-   DB 1
-   DB "ait",080H
-   DB NEEDOP,0 ;Flag special handling
+	DB	1
+	DB	"ai", 't'+ 080H
+	DB	NEEDOP,0	;Flag special handling
 
 NDPX:
-   DB 3
-   DB "ch",080H
-   DB 1+ONEREG,0C9H
-   DB "am",080H
-   DB 1,0E5H
-   DB "tract",080H
-   DB 1,0F4H
+	DB	3
+	DB	"c", 'h'+ 080H
+	DB	1+ONEREG,0C9H
+	DB	"a", 'm'+ 080H
+	DB	1,0E5H
+	DB	"trac", 't'+ 080H
+	DB	1,0F4H
 
 NDPY:
-   DB 2
-   DB "l2x",080H
-   DB 1,0F1H
-   DB "l2xp1",080H
-   DB 1,0F9H
+	DB	2
+	DB	"l2", 'x'+ 080H
+	DB	1,0F1H
+	DB	"l2xp", '1'+ 080H
+	DB	1,0F9H
+
 
 
 OPTAB:
@@ -3971,55 +3973,57 @@ NDPTAB:
 
 ;Error message table
 
-ERRTAB:
-   DB 1,"Register not allowed in immediate value",080H
-   DB 2,"Index or base register must be EBP, EBX, ESI, or EDI",080H
-   DB 3,"Only one base register (EBX, EBP) allowed",080H
-   DB 4,"Only one index register (ESI or EDI) allowed",080H
-   DB 5,"Only addition allowed on register or undefined label",080H
-   DB 6,"Only one undefined label per expression allowed",080H
-   DB 7,"Illegal digit in hexadecimal number",080H
-   DB 8,"Illegal digit in decimal number",080H
-   DB 10,"Illegal character in label or opcode",080H
-   DB 11,"Label defined twice",080H
-   DB 12,"Opcode not recognized",080H
-   DB 20,"Invalid operand",080H
-   DB 21,'"," and second operand expected',080H
-   DB 22,"Register mismatch",080H
-   DB 23,"Immediate operand not allowed",080H
-   DB 24,'"]" expected',080H
-   DB 25,"Two memory operands not allowed",080H
-   DB 26,"Destination must not be immediate value",080H
-   DB 27,"Both operands must not be registers",080H
-   DB 28,"Operand must be segment register",080H
-   DB 29,"First operand must be register",080H
-   DB 30,"Undefined label not allowed",080H
-   DB 31,"Value out of range",080H
-   DB 32,"Missing or illegal operand size flag",080H
-   DB 33,"Must have label on same line",080H
-   DB 35,"Zero-length string illegal",080H
-   DB 36,"ENDIF without IF",080H
-   DB 37,"One-character strings only",080H
-   DB 38,"Illegal expression",080H
-   DB 39,"End of string not found",080H
-   DB 100,"Undefined label",080H
-   DB 101,"Value out of range (forward)",080H
-   DB 255,080H
+;Error message table
 
-ERRMES  DB '***** ERROR:  ',080H
-NOSPAC  DB 13,10,'File creation error',13,10,0
-NOMEM   DB 13,10,'Insufficient memory',13,10,0
-NOFILE  DB 13,10,'File not found',13,10,0
-WRTERR  DB 13,10,'Disk full',13,10,0
-BADDSK  DB 13,10,'Bad disk specifier',13,10,0
-ERCNTM  DB 13,10,13,10,'Error Count =',080H
-SYMSIZE  DB 13,10,'Symbol Table size = ',080H
-FRESIZE  DB       'Free space =        ',080H
-SYMMES   DB 13,10,'Symbol Table',13,10,13,10
-EXTEND   DB '.ASM',0,0
-IFEND    DB 5,'endif'
-IFNEST   DB 2,'if'
-RETSTR   DB 'ret',080H
+ERRTAB:
+	DB	1, "Register not allowed in immediate valu", 'e'+ 080H
+	DB	2, "Index or base register must be BP, BX, SI, or D", 'I'+ 080H
+	DB	3, "Only one base register (BX, BP) allowe", 'd'+ 080H
+	DB	4, "Only one index register (SI or DI) allowe", 'd'+ 080H
+	DB	5, "Only addition allowed on register or undefined labe", 'l'+ 080H
+	DB	6, "Only one undefined label per expression allowe", 'd'+ 080H
+	DB	7, "Illegal digit in hexadecimal numbe", 'r'+ 080H
+	DB	8, "Illegal digit in decimal numbe", 'r'+ 080H
+	DB	10, "Illegal character in label or opcod", 'e'+ 080H
+	DB	11, "Label defined twic", 'e'+ 080H
+	DB	12, "Opcode not recognize", 'd'+ 080H
+	DB	20, "Invalid operan", 'd'+ 080H
+	DB	21, '", " and second operand expected'
+	DB	22, "Register mismatc", 'h'+ 080H
+	DB	23, "Immediate operand not allowe", 'd'+ 080H
+	DB	24, '"]" expecte', 'd'+ 080H
+	DB	25, "Two memory operands not allowe", 'd'+ 080H
+	DB	26, "Destination must not be immediate valu", 'e'+ 080H
+	DB	27, "Both operands must not be register", 's'+ 080H
+	DB	28, "Operand must be segment registe", 'r'+ 080H
+	DB	29, "First operand must be registe", 'r'+ 080H
+	DB	30, "Undefined label not allowe", 'd'+ 080H
+	DB	31, "Value out of rang", 'e'+ 080H
+	DB	32, "Missing or illegal operand size fla", 'g'+ 080H
+	DB	33, "Must have label on same lin", 'e'+ 080H
+	DB	35, "Zero-length string illega", 'l'+ 080H
+	DB	36, "ENDIF without I", 'F'+ 080H
+	DB	37, "One-character strings onl", 'y'+ 080H
+	DB	38, "Illegal expressio", 'n'+ 080H
+	DB	39, "End of string not foun", 'd'+ 080H
+	DB	100, "Undefined labe", 'l'+ 080H
+	DB	101, "Value out of range (forward", ')'+ 080H
+	DB	255
+
+ERRMES:	DB	'***** ERROR: ', ' '+ 080H
+NOSPAC:	DB	13,10,'File creation error',13,10,"$"
+NOMEM:	DB	13,10,'Insufficient memory',13,10,'$'
+NOFILE:	DB	13,10,'File not found',13,10,'$'
+WRTERR:	DB	13,10,'Disk full',13,10,'$'
+BADDSK:	DB	13,10,'Bad disk specifier',13,10,'$'
+ERCNTM:	DB	13, 10, 13, 10, 'Error Count ', '='+ 080H
+SYMSIZE	DB	13, 10, 'Symbol Table size =', ' '+ 080H
+FRESIZE	DB	'Free space =       ', ' '+ 080H
+SYMMES:	DB	13, 10, 'Symbol Tabl', 'e'+ 080H, 13, 10, 13, 10
+EXTEND:	DB	'.ASM',0,0
+IFEND:	DB	5,'endif'
+IFNEST:	DB	2,'if'
+RETSTR:	DB	're', 't'+ 080H
 
 OPEN_FLAG  DB 'r',0
 WRITE_FLAG DB 'w',0

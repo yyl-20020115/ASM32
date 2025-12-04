@@ -2,8 +2,8 @@
   "profiles": {
     "ASM32Symbols": {
       "commandName": "Project",
-      "commandLineArgs": "ASM32.ASM",
-      "workingDirectory": "D:\\Working\\ASM32"
+      "commandLineArgs": "ASM244EX.ASM",
+      "workingDirectory": "D:\\Working\\SASM"
     }
   }
 }

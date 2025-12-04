@@ -5,7 +5,7 @@ VisualStudioVersion = 17.14.36717.8
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "ASM32", "ASM32.vcxproj", "{69CD2A84-739F-4B0E-8591-ED569D3453D9}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ASM32Symbols", "ASM32Symbols\ASM32Symbols.csproj", "{0058B489-510C-4D41-96DE-DDBCE5831560}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ASM32FixDMs", "ASM32Symbols\ASM32FixDMs.csproj", "{0058B489-510C-4D41-96DE-DDBCE5831560}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution

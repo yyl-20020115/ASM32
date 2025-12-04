@@ -5,34 +5,55 @@ internal class Program
     static void Main(string[] args)
     {
         List<string> lines = [];
-        List<string> labels = [];
-        using (var reader = new StreamReader("ASM32.ASM"))
+        using var reader = new StreamReader("ASM244EX.ASM");
+        using var writer = new StreamWriter("ASM244GX.ASM");
+        string? line;
+        while (null != (line = reader.ReadLine()))
         {
-            string? line;
-            while (null != (line = reader.ReadLine()))
+            var si = line.IndexOf("DM");
+            if (si >= 0 && char.IsWhiteSpace(line[si + 2]))
             {
-                lines.Add(line);
-                var i = line.IndexOf(':');
-                if (i >= 0)
+                var pre = $"{line[..si]}DB{line[si + 2]}";
+                var data = line[(si + 2)..];
+                List<string> parts = [];
+                var builder = new System.Text.StringBuilder();
+                var quoting = false;
+                for (int p = data.Length - 1; p >= 0; p--)
                 {
-                    var label = line[..i].Trim();
-                    if (label.All(c => char.IsAsciiLetterOrDigit(c)||c=='_'))
+                    var c = data[p];
+                    if (p > 0 && data[p - 1] != '\\' || p == 0)
                     {
-                        labels.Add(label);
+                        if (c == '\'' || c == '"')
+                            quoting = !quoting;
+                    }
+                    if (!quoting && (c == ',' || char.IsWhiteSpace(c)))
+                    {
+                        var val = builder.ToString();
+                        parts.Add(builder.ToString());
+                        if (p == 0) break;
+                        builder.Clear();
+                        continue;
+                    }
+                    builder.Insert(0, c);
+                }
+                parts.Reverse();
+                List<string> newParts = [];
+                foreach (var part in parts)
+                {
+                    if (part.Length >= 3 && (part[0] == '\'' && part[^1] == '\'' || part[0] == '"' && part[^1] == '"'))
+                    {
+                        var quote = part[0];
+                        var last = part[^2];
+                        newParts.Add($"{part[..^2]}{quote}, '{last}'+ 080H");
+                    }
+                    else if (!string.IsNullOrEmpty(part))
+                    {
+                        newParts.Add(part);
                     }
                 }
+                line = pre + string.Join(", ", newParts);
             }
-        }
-        using (var writer = new StreamWriter("ASM32-G.ASM"))
-        {
-            foreach(var label in labels)
-            {
-                writer.WriteLine($"GLOBAL {label}");
-            }
-            foreach(var line in lines)
-            {
-                writer.WriteLine(line);
-            }
+            writer.WriteLine(line);
         }
     }
 }
