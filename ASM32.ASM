@@ -1826,14 +1826,14 @@ PUTINC PROC
    INC   [PC]
 PUTCD PROC
    MOV   EDI,[CODE]
-PUSH ESI
-LEA ESI,CODE_START
-ADD ESI,0100000H
-CMP EDI,ESI
-JB SKIP_IT
-	NOP
-SKIP_IT:
-POP ESI
+;PUSH ESI
+;LEA ESI,CODE_START
+;ADD ESI,10H
+;CMP EDI,ESI
+;JB SKIP_IT
+;	NOP
+;SKIP_IT:
+;POP ESI
    STOSB
    MOV   [CODE],EDI
    RET
@@ -2611,7 +2611,7 @@ _IF PROC
 _IF ENDP
 SKIPCD PROC
    INC   [CHKLAB]
-SKIPLP PROC
+SKIPLP:
    XOR   AL,AL
    CALL  NEXLIN
    CALL  NEXTCHR
@@ -2634,14 +2634,12 @@ SKIPLP PROC
    JNZ   SKIPLP
    INC   [CHKLAB]
    JMP SKIPLP
-SKIPLP ENDP
-SKIPCD ENDP
 
-ENDCOND PROC
+ENDCOND:
    DEC   [CHKLAB]
    JNZ   SKIPLP
    RET
-ENDCOND ENDP
+SKIPCD ENDP
 
 _ENDIF PROC
    MOV   AL,[IFFLG]
@@ -2684,6 +2682,7 @@ REINIT PROC
 ;------------------------
    RET
 REINIT ENDP
+
 _END PROC
    MOV   DL,4
 WREND:
@@ -2694,7 +2693,7 @@ WREND:
    JNZ   WREND
    CALL  REINIT
 
-FIXLINE:
+FIXLINE PROC
    MOV   EDI,OFFSET CODE_START ;Store code over used up intermediate code
    XOR   AL,AL
    MOV   [SPC],AL ;No "special" yet (ORG, PUT, DS)
@@ -2834,7 +2833,7 @@ DPUT:
 ;Handle PUT pseudo-op
    MOV   [HEXADD],EDX
    JMP   FIXLINE
-
+FIXLINE ENDP
 OUTLIN PROC
 ;Copy the source line to the ouput device. Line will be preceded by
 ;assembler-generated line number. This routine may be called several times
@@ -2861,6 +2860,14 @@ OUTLN:
    RET
 OUTLIN ENDP
 
+CRLF PROC
+   MOV   AL,13
+   CALL  LIST
+   MOV   AL,10
+   CALL  LIST
+   RET
+CRLF ENDP
+
 PRTCNT PROC
    MOV   EAX,[ERRCNT]
    MOV   EBX,OFFSET ERCNTM
@@ -2870,13 +2877,8 @@ PRNT10 PROC
    POP   EAX
    MOV   BH,"0"-" "  ;Enable leading zero suppression
    CALL  OUT10
-CRLF PROC
-   MOV   AL,13
-   CALL  LIST
-   MOV   AL,10
-   CALL  LIST
+   CALL  CRLF
    RET
-CRLF ENDP
 
 OUT10 PROC
    XOR   EDX,EDX
@@ -2909,7 +2911,8 @@ DIGIT PROC
    MOV   BH,0     ;Turn off zero suppression if not zero
 SUPZ:
    SUB   AL,BH    ;Convert leading zeros to blanks
-   JMP LIST
+   CALL LIST
+   RET
 DIGIT ENDP
 HIDIG ENDP
 OUT10 ENDP
@@ -2940,17 +2943,13 @@ LIST PROC
    PUSH  EDX
    AND   AL,7FH
    MOV   DL,AL
-   CALL FILCHK
-   RET
-LIST ENDP
-
-FILCHK PROC
+FILCHK:
    MOV   AL,DL
    POP   EDX
    CALL  WRTBUF
    POP   EAX
    RET
-FILCHK ENDP
+LIST ENDP
 
 WRTBUF PROC
    PUSH  EDI
@@ -2978,6 +2977,7 @@ PHEX PROC
    POP   EAX
    CALL  LHALF
    CALL LIST
+   RET
 PHEX ENDP
 
 FINI PROC
@@ -3122,7 +3122,6 @@ RIGHTSON:
    JNZ   NODE
    RET
 NODE ENDP
-
 
 
 SAVCD PROC
