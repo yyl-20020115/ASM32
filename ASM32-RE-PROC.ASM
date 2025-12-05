@@ -72,6 +72,9 @@ EXTERN ftell :PROC
     ;ecx, eax
 PUBLIC ASM32_ENTRY@8
 DOPRE PROC
+   MOV   [STACK_],ESP
+   MOV   EAX,[ESP+4]  ;Get argc
+   MOV   ECX,[ESP+8]  ;Get argv pointer
 
    CMP   EAX,1
    JGE   HAS_FILE_NAME
@@ -307,9 +310,7 @@ NEXLIN ENDP
 
 ;Assemble each line of code
 ;------------------------------------------------------------------------------
-PLINES PROC
-   MOV   [STACK_],ESP
-_LOOP:
+_LOOP PROC
    CALL NEXTCHR
    CMP AL,1AH      ;EOF
    JZ ENDJ           ;FOUND EOF GOTO NEXT PASS
@@ -337,10 +338,10 @@ ENDLIN PROC
 ;AL = error code for line. Stack depth unknown
    MOV ESP,[STACK_]
    CALL  NEXLIN
+   JMP _LOOP
 ENDLIN ENDP
 ENDLN ENDP
-   JMP _LOOP
-PLINES ENDP
+_LOOP ENDP
 
 ERROR PROC
    MOV   AL,CL
@@ -379,12 +380,9 @@ MAKFIL_RET:
 CREATE_FILE ENDP
 
 ASM32_ENTRY@8:
-   MOV   EAX,[ESP+4]  ;Get argc
-   MOV   ECX,[ESP+8]  ;Get argv pointer
-
 	CALL DOPRE
 	CALL DOINIT
-	CALL PLINES
+	CALL _LOOP
 	CALL _END
 
 	RET
@@ -1338,8 +1336,7 @@ CREATE PROC
    ;db 0cch
    CMP   EBX,EDX		;OUT OF MEMORY
    JB SKIP_ABORT
-   CALL   ABORT
-   RET
+   JMP   ABORT
 SKIP_ABORT:
    PUSH  EDX	;EDX: START POS OF NODE
    MOV   EBX,OFFSET LENID ;EBX: LENID + ID
@@ -2907,7 +2904,6 @@ HIDIG ENDP
 OUT10 ENDP
 PRNT10 ENDP
 PRTCNT ENDP
-_END ENDP
 
 STRTLIN PROC
    MOV   [LINFLG],0
@@ -2969,7 +2965,7 @@ PHEX PROC
    CALL  LIST
    POP   EAX
    CALL  LHALF
-   CALL LIST
+   JMP LIST
 PHEX ENDP
 
 FINI PROC
@@ -2995,7 +2991,6 @@ L0012:
    CALL HEXEND
    RET
 FINI ENDP
-
 HEXEND PROC
    PUSH  ECX
    MOV   AL,'0'
@@ -3046,6 +3041,7 @@ EXIT:
    ADD   ESP,4
    RET
 ENDSYM ENDP
+
 NODE PROC
    XCHG  EDX,EBX
    PUSH  EBX
@@ -3115,7 +3111,7 @@ RIGHTSON:
    RET
 NODE ENDP
 
-
+_END ENDP
 
 SAVCD PROC
    MOV   [PREV],AL
@@ -3181,8 +3177,7 @@ REPERR ENDP
 
 PRNERR PROC
    CALL  PRINT
-   CALL  CRLF
-   RET
+   JMP   CRLF
 PRNERR ENDP
 
 PRINT PROC
@@ -3300,7 +3295,7 @@ WRTHEX PROC
    CALL  fwrite
    ADD   ESP,16
    OR AL,AL
-   JNZ   WRTHEX_RET
+   JZ   WRTHEX_RET
    CALL DSKFUL
 WRTHEX_RET:
    RET
@@ -3347,9 +3342,9 @@ UHALF PROC
    AND   AL,0FH
    OR AL,30H
    CMP   AL,'9'+1
-   JC UHALF_RET
+   JC LHALF_RET
    ADD   AL,7
-UHALF_RET:
+LHALF_RET:
    RET
 UHALF ENDP
 LHALF PROC
@@ -4265,11 +4260,11 @@ ERRTAB DB	1, "Register not allowed in immediate valu", 'e'+ 080H
 	DB	255
 
 ERRMES	DB	'***** ERROR: ',0A0H
-NOSPAC	DB	13,10,'File creation error',13,10,0
-NOMEM	DB	13,10,'Insufficient memory',13,10,0
-NOFILE	DB	13,10,'File not found',13,10,0
-WRTERR	DB	13,10,'Disk full',13,10,0
-BADDSK	DB	13,10,'Bad disk specifier',13,10,0
+NOSPAC	DB	13,10,'File creation error',13,10,"$"
+NOMEM	DB	13,10,'Insufficient memory',13,10,'$'
+NOFILE	DB	13,10,'File not found',13,10,'$'
+WRTERR	DB	13,10,'Disk full',13,10,'$'
+BADDSK	DB	13,10,'Bad disk specifier',13,10,'$'
 ERCNTM	DB	13, 10, 13, 10, 'Error Count ', '='+ 080H
 SYMSIZE	DB	13, 10, 'Symbol Table size =', ' '+ 080H
 FRESIZE	DB	'Free space =       ', ' '+ 080H
@@ -4359,8 +4354,9 @@ SRCBUF  DB BUFSIZ DUP(0)
 		DD 0
         DB 100H DUP(0)
 ALIGN 4
-CODE_START DB 100000H DUP(0)
-HEAP_START DB 100000H DUP(0)
+CODE_START DB 10000H DUP(0)
+;1M
+HEAP_START DB 10000H DUP(0)
 
 ;DATASEG ENDS
 ;		END REAL_START
