@@ -54,7 +54,7 @@
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
   <ImportGroup Label="ExtensionSettings">
-    <Import Project="$(VCTargetsPath)\BuildCustomizations\nasm.props" />
+    <Import Project="$(VCTargetsPath)\BuildCustomizations\masm.props" />
   </ImportGroup>
   <ImportGroup Label="Shared">
   </ImportGroup>
@@ -74,9 +74,15 @@
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <ClCompile>
       <WarningLevel>Level3</WarningLevel>
-      <SDLCheck>true</SDLCheck>
+      <SDLCheck>false</SDLCheck>
       <PreprocessorDefinitions>WIN32;_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
-      <ConformanceMode>true</ConformanceMode>
+      <ConformanceMode>
+      </ConformanceMode>
+      <BufferSecurityCheck>
+      </BufferSecurityCheck>
+      <BasicRuntimeChecks>
+      </BasicRuntimeChecks>
+      <DebugInformationFormat>OldStyle</DebugInformationFormat>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -84,16 +90,31 @@
       <AdditionalDependencies>msvcrt.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <RandomizedBaseAddress>false</RandomizedBaseAddress>
       <DataExecutionPrevention>false</DataExecutionPrevention>
+      <EntryPointSymbol>
+      </EntryPointSymbol>
+      <GenerateMapFile />
     </Link>
+    <MASM>
+      <ErrorReporting>
+      </ErrorReporting>
+      <ListAllAvailableInformation>true</ListAllAvailableInformation>
+    </MASM>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <ClCompile>
       <WarningLevel>Level3</WarningLevel>
-      <FunctionLevelLinking>true</FunctionLevelLinking>
+      <FunctionLevelLinking>
+      </FunctionLevelLinking>
       <IntrinsicFunctions>true</IntrinsicFunctions>
-      <SDLCheck>true</SDLCheck>
+      <SDLCheck>false</SDLCheck>
       <PreprocessorDefinitions>WIN32;NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
-      <ConformanceMode>true</ConformanceMode>
+      <ConformanceMode>
+      </ConformanceMode>
+      <BufferSecurityCheck>
+      </BufferSecurityCheck>
+      <DebugInformationFormat>OldStyle</DebugInformationFormat>
+      <BasicRuntimeChecks>
+      </BasicRuntimeChecks>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -101,14 +122,28 @@
       <AdditionalDependencies>msvcrt.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <RandomizedBaseAddress>false</RandomizedBaseAddress>
       <DataExecutionPrevention>false</DataExecutionPrevention>
+      <EntryPointSymbol>
+      </EntryPointSymbol>
+      <GenerateMapFile />
     </Link>
+    <MASM>
+      <ErrorReporting>
+      </ErrorReporting>
+      <ListAllAvailableInformation>true</ListAllAvailableInformation>
+    </MASM>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <ClCompile>
       <WarningLevel>Level3</WarningLevel>
-      <SDLCheck>true</SDLCheck>
+      <SDLCheck>false</SDLCheck>
       <PreprocessorDefinitions>_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
-      <ConformanceMode>true</ConformanceMode>
+      <ConformanceMode>
+      </ConformanceMode>
+      <BufferSecurityCheck>
+      </BufferSecurityCheck>
+      <BasicRuntimeChecks>
+      </BasicRuntimeChecks>
+      <DebugInformationFormat>OldStyle</DebugInformationFormat>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -116,16 +151,31 @@
       <AdditionalDependencies>msvcrt.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <RandomizedBaseAddress>false</RandomizedBaseAddress>
       <DataExecutionPrevention>false</DataExecutionPrevention>
+      <EntryPointSymbol>
+      </EntryPointSymbol>
+      <GenerateMapFile />
     </Link>
+    <MASM>
+      <ErrorReporting>
+      </ErrorReporting>
+      <ListAllAvailableInformation>true</ListAllAvailableInformation>
+    </MASM>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <ClCompile>
       <WarningLevel>Level3</WarningLevel>
-      <FunctionLevelLinking>true</FunctionLevelLinking>
+      <FunctionLevelLinking>
+      </FunctionLevelLinking>
       <IntrinsicFunctions>true</IntrinsicFunctions>
-      <SDLCheck>true</SDLCheck>
+      <SDLCheck>false</SDLCheck>
       <PreprocessorDefinitions>NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
-      <ConformanceMode>true</ConformanceMode>
+      <ConformanceMode>
+      </ConformanceMode>
+      <BufferSecurityCheck>
+      </BufferSecurityCheck>
+      <DebugInformationFormat>OldStyle</DebugInformationFormat>
+      <BasicRuntimeChecks>
+      </BasicRuntimeChecks>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -133,24 +183,93 @@
       <AdditionalDependencies>msvcrt.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <RandomizedBaseAddress>false</RandomizedBaseAddress>
       <DataExecutionPrevention>false</DataExecutionPrevention>
+      <EntryPointSymbol>
+      </EntryPointSymbol>
+      <GenerateMapFile />
     </Link>
+    <MASM>
+      <ErrorReporting>
+      </ErrorReporting>
+      <ListAllAvailableInformation>true</ListAllAvailableInformation>
+    </MASM>
   </ItemDefinitionGroup>
-  <ItemGroup>
-    <ClCompile Include="ASM32MAIN.c" />
-  </ItemGroup>
   <ItemGroup>
     <Library Include="msvcrt.lib" />
   </ItemGroup>
   <ItemGroup>
-    <NASM Include="ASM32.ASM">
+    <MASM Include="ASM32.ASM">
       <GenerateDebugInformation Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</GenerateDebugInformation>
       <GenerateDebugInformation Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">true</GenerateDebugInformation>
       <GenerateDebugInformation Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</GenerateDebugInformation>
       <GenerateDebugInformation Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</GenerateDebugInformation>
-    </NASM>
+      <FileType>Document</FileType>
+      <EnableMASM51Compatibility Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</EnableMASM51Compatibility>
+      <EnableMASM51Compatibility Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">true</EnableMASM51Compatibility>
+      <EnableMASM51Compatibility Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</EnableMASM51Compatibility>
+      <EnableMASM51Compatibility Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</EnableMASM51Compatibility>
+      <GeneratePreprocessedSourceListing Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
+      </GeneratePreprocessedSourceListing>
+      <ListAllAvailableInformation Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
+      </ListAllAvailableInformation>
+      <AddFirstPassListing Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
+      </AddFirstPassListing>
+      <EnableAssemblyGeneratedCodeListing Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
+      </EnableAssemblyGeneratedCodeListing>
+      <EnableFalseConditionalsInListing Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
+      </EnableFalseConditionalsInListing>
+      <AssembledCodeListingFile Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
+      </AssembledCodeListingFile>
+      <GeneratePreprocessedSourceListing Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
+      </GeneratePreprocessedSourceListing>
+      <ListAllAvailableInformation Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
+      </ListAllAvailableInformation>
+      <AddFirstPassListing Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
+      </AddFirstPassListing>
+      <EnableAssemblyGeneratedCodeListing Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
+      </EnableAssemblyGeneratedCodeListing>
+      <EnableFalseConditionalsInListing Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
+      </EnableFalseConditionalsInListing>
+      <AssembledCodeListingFile Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
+      </AssembledCodeListingFile>
+      <GeneratePreprocessedSourceListing Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+      </GeneratePreprocessedSourceListing>
+      <ListAllAvailableInformation Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+      </ListAllAvailableInformation>
+      <AddFirstPassListing Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+      </AddFirstPassListing>
+      <EnableAssemblyGeneratedCodeListing Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+      </EnableAssemblyGeneratedCodeListing>
+      <EnableFalseConditionalsInListing Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+      </EnableFalseConditionalsInListing>
+      <AssembledCodeListingFile Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+      </AssembledCodeListingFile>
+      <GeneratePreprocessedSourceListing Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
+      </GeneratePreprocessedSourceListing>
+      <ListAllAvailableInformation Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
+      </ListAllAvailableInformation>
+      <AddFirstPassListing Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
+      </AddFirstPassListing>
+      <EnableAssemblyGeneratedCodeListing Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
+      </EnableAssemblyGeneratedCodeListing>
+      <EnableFalseConditionalsInListing Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
+      </EnableFalseConditionalsInListing>
+      <AssembledCodeListingFile Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
+      </AssembledCodeListingFile>
+      <MakeAllSymbolsPublic Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</MakeAllSymbolsPublic>
+      <MakeAllSymbolsPublic Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">true</MakeAllSymbolsPublic>
+      <MakeAllSymbolsPublic Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</MakeAllSymbolsPublic>
+      <MakeAllSymbolsPublic Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</MakeAllSymbolsPublic>
+      <ErrorReporting Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">3</ErrorReporting>
+      <ErrorReporting Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">3</ErrorReporting>
+      <ErrorReporting Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">3</ErrorReporting>
+      <ErrorReporting Condition="'$(Configuration)|$(Platform)'=='Release|x64'">3</ErrorReporting>
+    </MASM>
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="ASM32MAIN.c" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
-    <Import Project="$(VCTargetsPath)\BuildCustomizations\nasm.targets" />
+    <Import Project="$(VCTargetsPath)\BuildCustomizations\masm.targets" />
   </ImportGroup>
 </Project>

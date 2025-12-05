@@ -24,11 +24,8 @@
 ; 05/09/83  2.44  Add memory usage report
 ;
 ;* * * * * * * * * * * * * * * * * * * * *
-.386
-.model flat, stdcall
-option casemap :none
-.stack 4096
-.code
+BITS 32
+
 SYMWID   EQU   5  ;5 symbols per line in dump
 BUFSIZ   EQU   1024  ;Source code buffer
 LSTBUFSIZ   EQU   BUFSIZ   ;List file buffer
@@ -58,24 +55,21 @@ ARITH EQU   8  ;Non-pop arithmetic operations
 SEEK_SET EQU 0
 SEEK_CUR EQU 1
 SEEK_END EQU 2
+section .text
 
-;ASSUME CS:CODESEG,DS:DATASEG
-;CODESEG SEGMENT "CODE" PUBLIC
+GLOBAL _ASM32_ENTRY@8
 
-
-EXTERN _cprintf :PROC
-EXTERN fopen :PROC
-EXTERN fread :PROC
-EXTERN fwrite :PROC
-EXTERN fclose :PROC
-EXTERN feof :PROC
-EXTERN fseek :PROC
-EXTERN ftell :PROC
-REAL_START:
+EXTERN _cprintf
+EXTERN _fopen
+EXTERN _fread   
+EXTERN _fwrite
+EXTERN _fclose
+EXTERN _feof
+EXTERN _fseek
+EXTERN _ftell
     ;int argc, char* argv[]
     ;ecx, eax
-PUBLIC ASM32_ENTRY@8
-ASM32_ENTRY@8:
+_ASM32_ENTRY@8:
    MOV   [STACK_],ESP
    MOV   EAX,[ESP+4]  ;Get argc
    MOV   ECX,[ESP+8]  ;Get argv pointer
@@ -100,12 +94,12 @@ HAS_FILE_NAME:
 COPY_NAME:
 
    MOV ESI,EDX
-   MOV EDI,OFFSET SRCNAME
+   MOV EDI,SRCNAME
    MOV ECX,[SRCNAME_LENGTH] ;LENGTH
    REP MOVSB 
 FIND_DOT:
    CLD
-   MOV   EDI,OFFSET SRCNAME
+   MOV   EDI,SRCNAME
    MOV   ECX,[SRCNAME_LENGTH] ;MAX LENGTH
    ADD   EDI,ECX
    MOV   AL,'.'
@@ -113,50 +107,48 @@ FIND_DOT:
    ;EDI points to '.'
    JE    DO_OPEN
 NO_DOT:
-   MOV   EDI,OFFSET SRCNAME
+   MOV   EDI,SRCNAME
    MOV   ECX,[SRCNAME_LENGTH] ;MAX LENGTH
    ADD   EDI,ECX
-   MOV   ESI,OFFSET EXTEND
+   MOV   ESI,EXTEND
    MOV   ECX,4
    REP   MOVSB
    ADD   [SRCNAME_LENGTH],4
 DO_OPEN:
    ;OPEN FILE
    CLD
-   PUSH  OFFSET OPEN_FLAG
-   PUSH  OFFSET SRCNAME
-   CALL fopen
+   PUSH  OPEN_FLAG
+   PUSH  SRCNAME
+   CALL _fopen
    ADD   ESP,8
    OR   EAX,EAX
-   JNZ   OK_FILE
+   JZ   NOFILE
    ;SAVE FILE HANDLE
-   DEC  EAX
-   RET
-OK_FILE:
+   
    MOV   [SRCFILE],EAX
    ;GET FILE SIZE
    PUSH SEEK_END
    PUSH 0
    PUSH [SRCFILE]
-   CALL fseek
+   CALL _fseek
    ADD ESP,12
    PUSH [SRCFILE]
-   CALL ftell
+   CALL _ftell
    ADD ESP,4
-   MOV DWORD PTR[SRCLENGTH],EAX
+   MOV DWORD[SRCLENGTH],EAX
    PUSH SEEK_SET
    PUSH 0
    PUSH [SRCFILE]
-   CALL fseek
+   CALL _fseek
    ADD ESP,12
 
    ;SET HEX FILE NAME
-   MOV   ESI,OFFSET SRCNAME
+   MOV   ESI,SRCNAME
    MOV   ECX,[SRCNAME_LENGTH] ;LENGTH
-   MOV   EDI,OFFSET HEXNAME ;DESTINATION
+   MOV   EDI,HEXNAME ;DESTINATION
    CLD
    REP   MOVSB
-   MOV   EDI,OFFSET  HEXNAME
+   MOV   EDI,HEXNAME
    ADD   EDI,[SRCNAME_LENGTH]
    SUB   EDI,3
    MOV   [EDI],'H'
@@ -167,12 +159,12 @@ OK_FILE:
    
 
    ;SET LST FILE NAME
-   MOV   ESI,OFFSET SRCNAME
+   MOV   ESI,SRCNAME
    MOV   ECX,[SRCNAME_LENGTH];LENGTH
-   MOV   EDI,OFFSET LSTNAME ;DESTINATION
+   MOV   EDI,LSTNAME ;DESTINATION
    CLD
    REP   MOVSB
-   MOV   EDI,OFFSET LSTNAME
+   MOV   EDI,LSTNAME
    ADD   EDI,[SRCNAME_LENGTH]
    SUB   EDI,3
    MOV   [EDI],'L'
@@ -182,20 +174,20 @@ OK_FILE:
    MOV   [EDI],'T'
    
    ;CREATE OUTPUT FILES
-   MOV   EDX,OFFSET HEXNAME
+   MOV   EDX,HEXNAME
    CALL  CREATE_FILE
    MOV   [HEXFILE],EAX
 
-   MOV   EDX,OFFSET LSTNAME
+   MOV   EDX,LSTNAME
    CALL  CREATE_FILE
    MOV   [LSTFILE],EAX
 ;------------------------------------------------------------------------------
 ;Initialize for first pass
    XOR   EAX,EAX
 
-   MOV   DWORD PTR[BUFPT],OFFSET SRCBUF ;Initialize buffer pointer
-   MOV   DWORD PTR[CODE],OFFSET CODE_START+1 ;POINTER TO NEXT BYTE OF INTERMEDIATE CODE
-   MOV   DWORD PTR[IY],OFFSET CODE_START  ;POINTER TO CURRENT RELOCATION BYTE
+   MOV   DWORD[BUFPT],SRCBUF ;Initialize buffer pointer
+   MOV   DWORD[CODE],CODE_START+1 ;POINTER TO NEXT BYTE OF INTERMEDIATE CODE
+   MOV   DWORD[IY],CODE_START  ;POINTER TO CURRENT RELOCATION BYTE
 
    XOR   EAX,EAX
    MOV   [PC],EAX     ;DEFAULT PROGRAM COUNTER
@@ -205,9 +197,9 @@ OK_FILE:
    MOV   [CHKLAB],AL ;LOOKUP ALL LABELS
    DEC   EAX
    MOV   [LSTRET],EAX ;Location of last RET
-   MOV   EAX,OFFSET HEAP_START
+   MOV   EAX,HEAP_START
    MOV   [_HEAP],EAX  ;BACK END OF SYMBOL TABLE SPACE
-   MOV   DWORD PTR[BCOUNT],4  ;CODE BYTES PER RELOCATION BYTE
+   MOV   DWORD[BCOUNT],4  ;CODE BYTES PER RELOCATION BYTE
    MOV   ECX,BUFSIZ
    XOR   EAX,EAX
    DEC   EAX
@@ -258,7 +250,7 @@ NEXLIN_RET:
    RET
 
 ABORT:
-   MOV   EBX,OFFSET NOMEM
+   MOV   EBX,NOMEM
 PRERR:
    PUSH  EBX
    ;ERROR PRINT HERE ONLY
@@ -269,15 +261,15 @@ QUIT:
    RET
 
 CREATE_FILE:
-   PUSH   OFFSET WRITE_FLAG
+   PUSH   WRITE_FLAG
    PUSH   EDX
-   CALL  fopen
+   CALL  _fopen
    ADD   ESP,8
 
    OR     EAX,EAX
    JNZ   MAKFIL_RET
    NOP
-   MOV   EBX,OFFSET NOSPAC
+   MOV   EBX,NOSPAC
    JMP   PRERR
 MAKFIL_RET:
    RET
@@ -289,7 +281,7 @@ ERROR:
 
 NEXTCHR: ;DONE
    MOV   ESI,[BUFPT]
-   CMP   ESI,OFFSET SRCBUF
+   CMP   ESI,SRCBUF
    JNZ   GETCH
 ;Buffer empty so refill it
    PUSH  EDX
@@ -299,15 +291,15 @@ NEXTCHR: ;DONE
    PUSH  BUFSIZ
    PUSH  1
    PUSH  ESI
-   CALL fread
+   CALL _fread
    ADD   ESP,16
    OR    EAX,EAX
    ;COUNT ALL READ BYTES
    ;
-   MOV   DWORD PTR[LAST_READ_CHAR_COUNT],EAX
-   ADD   DWORD PTR[TOTAL_READ_CHAR_COUNT],EAX
+   MOV   DWORD[LAST_READ_CHAR_COUNT],EAX
+   ADD   DWORD[TOTAL_READ_CHAR_COUNT],EAX
    ;BUF COUNT++
-   INC   DWORD PTR[SRCBUF_COUNT]
+   INC   DWORD[SRCBUF_COUNT]
 
    XCHG  EAX,EDX    ;Put error code in DL
    POP   EAX    ;Restore AH
@@ -327,7 +319,7 @@ GETCH:
    XCHG ECX,EAX
    POP EAX
    ADD ECX,ESI
-   SUB ECX,OFFSET SRCBUF
+   SUB ECX,SRCBUF
    MOV [CHAR_LOCATION],ECX
    CMP ECX,[SRCLENGTH]
    POP ECX
@@ -343,16 +335,16 @@ SKIP_FOUND_END:
    CMP   AL,13
    JNZ	 SKIP_LINE_END
    LODSB ;10
-   INC   DWORD PTR [LINE_COUNT]
+   INC   DWORD [LINE_COUNT]
 SKIP_LINE_END:
-   CMP   ESI,OFFSET SRCBUF+BUFSIZ
+   CMP   ESI,SRCBUF+BUFSIZ
    JNZ   NOMOD
-   MOV   ESI,OFFSET SRCBUF
+   MOV   ESI,SRCBUF
 NOMOD:
    MOV   [BUFPT],ESI
    OR AL,AL
    JNZ SKIP_NOMOD
-   MOV ESI,OFFSET SRCBUF
+   MOV ESI,SRCBUF
    MOV [BUFPT],ESI
    JMP NEXTCHR
 SKIP_NOMOD:
@@ -504,7 +496,7 @@ GETOP:
 ;
 ; AL=DH=0  Memory Reference.  DL has the address mode properly prepared in
 ; the 8086 R/M format (middle bits zero). The constant part of the address
-; is in _ADDR. If an undefined label needs to be added to this, a pointer to
+; is in ADDR. If an undefined label needs to be added to this, a pointer to
 ; its information fields is in ALABEL, otherwise ALABEL is zero.
 ;
 ; AL=DH=1  Value. The constant part is in DATA. If an undefined label needs
@@ -536,9 +528,9 @@ VAL:           ;Must be immediate
 VAL1:
    CALL  GETVAL
    MOV   EAX,[CON] ;Defined part
-   MOV   [_DATA_],EAX
+   MOV   [_DATA],EAX
    MOV   EAX,[UNDEF]  ;Undefined part
-   MOV   DWORD PTR[DLABEL],EAX
+   MOV   [DLABEL],EAX
    MOV   DL,CH
    MOV   DH,CONST
    MOV   AL,DH
@@ -559,7 +551,7 @@ MEM:
    JNZ   ERR1
    CALL  GETSYM
    MOV   EBX,[CON]
-   MOV   [_ADDR],EBX
+   MOV   [ADDR],EBX
    MOV   EBX,[UNDEF]
    MOV   [ALABEL],EBX
    MOV   DL,CH
@@ -586,7 +578,7 @@ GETVAL:
 ; UNDEF.
 
    MOV   AH,AL    ;Flag is kept in AH
-   MOV   DWORD PTR[UNDEF],0
+   MOV   DWORD[UNDEF],0
    MOV   AL,[SYM]
    CALL  EXPRESSION
    MOV   [CON],EDX
@@ -603,7 +595,7 @@ GETVAL:
    RCL   CH,1     ;The low 3 bits now have indexing mode
 MODE:
    OR CH,080H     ;If undefined label, force 16-bit displacement
-   TEST  DWORD PTR[UNDEF],-1
+   TEST  DWORD[UNDEF],-1
    JNZ   MODE_RET
    MOV   EBX,[CON]
    MOV   AL,BL
@@ -773,7 +765,7 @@ BXJ:
 PAREN:
    CALL  GETSYM      ;Eat the "("
    CALL  EXPRESSION
-   CMP   BYTE PTR[SYM],")"  ;Better have closing paren
+   CMP   BYTE[SYM],")"  ;Better have closing paren
    MOV   CL,20
    JNZ   ERR30
    RET
@@ -900,8 +892,8 @@ GETSY_SKIP:
    JNC   NEXTCHJ
    CMP   AL,'0'
    JC NEXTCHJ
-   MOV   EBX,OFFSET SYM
-   MOV   BYTE PTR[EBX],CONST
+   MOV   EBX,SYM
+   MOV   BYTE[EBX],CONST
    CALL  READID
    DEC   EBX
    MOV   AL,[EBX]
@@ -912,11 +904,11 @@ GETSY_SKIP:
    JMP   HEX
 GETSY_SKIP2:
    INC   CL
-   MOV   DWORD PTR[IX],OFFSET  ID
+   MOV   DWORD[IX],ID
 _DEC:
    MOV   ESI,[IX]
    MOV   AL,[ESI]
-   INC   DWORD PTR[IX]
+   INC   DWORD[IX]
    CMP   AL,'9'+1
    JC _DEC_SKIP
    JMP   ERROR
@@ -936,7 +928,7 @@ _DEC_SKIP:
    RET
 
 HEX:
-   MOV   EDX,OFFSET ID
+   MOV   EDX,ID
    DEC   CH
 HEX1:
    MOV   ESI,EDX
@@ -976,7 +968,7 @@ GETLET: ;SAVE LABEL AND RETURN ':'
    CMP   AL,'z'+1
    JNC   ERR4
 READID:
-   MOV   EBX,OFFSET ID
+   MOV   EBX,ID
    MOV   CH,0
 MOREID: ;READ LABEL CHARS
    MOV   [EBX],AL
@@ -995,7 +987,7 @@ MOREID: ;READ LABEL CHARS
 NOMORE:
    MOV   CL,AL
    MOV   AL,CH
-   MOV   BYTE PTR[LENID],AL
+   MOV   [LENID],AL
    OR AL,AL
    MOV   AL,CL
 GETLET_RET:
@@ -1010,10 +1002,11 @@ LETTER:
    MOV   ECX,5
    MOV   EDI,FLGTAB
    CLD
-   REPNE SCASB       ;See if one of B,W,S,L,T
+   REPNE
+   SCASB       ;See if one of B,W,S,L,T
    JZ SAVFLG      ;Go save flag
    XOR   AL,AL
-   MOV   CH,BYTE PTR[LENID]
+   MOV   CH,[LENID]
 NOFLG:
    DEC   AL
    PUSH  EBX
@@ -1051,10 +1044,10 @@ FPREG:
    CMP   AL,CONST ;Better have found a constant
    MOV   CL,20    ;Operand error if not
    JNZ   ERRJ3
-   CMP   DWORD PTR[DLABEL],0  ;Constant must be defined
+   CMP   DWORD[DLABEL],0  ;Constant must be defined
    MOV   CL,30
    JNZ   ERRJ3
-   MOV   EDX,[_DATA_]  ;Get constant
+   MOV   EDX,[_DATA]  ;Get constant
    CMP   EDX,7     ;Constant must be in range 0-7
    MOV   CL,31
    JA ERRJ3
@@ -1068,13 +1061,13 @@ HAVREG:
    RET
 
 REGCHK:
-   MOV   EBX,OFFSET ID
-   CMP   DWORD PTR[EBX],"s"+7400H   ;"st"
+   MOV   EBX,ID
+   CMP   DWORD[EBX],"s"+7400H   ;"st"
    JZ FPREG
    MOV   CL,[EBX]
    INC   EBX
    MOV   AL,[EBX]
-   MOV   EBX,OFFSET REGTAB
+   MOV   EBX,REGTAB
    MOV   DH,XREG
    MOV   DL,0
    CMP   AL,'x'
@@ -1087,7 +1080,7 @@ REGCHK:
    JZ SCANREG
    MOV   DH,SREG
    MOV   DL,0
-   MOV   EBX,OFFSET SEGTAB
+   MOV   EBX,SEGTAB
    CMP   AL,'s'
    JZ SCANREG
    MOV   DH,XREG
@@ -1115,7 +1108,8 @@ SCANREG:
    MOV   ECX,4
    CLD
    MOV   EDI,EBX
-   REPNZ   SCASB
+   REPNZ
+   SCASB
    MOV   EBX,EDI
    JNZ   SCANREG_RET
    MOV   AL,CL
@@ -1131,7 +1125,7 @@ LOOK:	;EBX:base of nodes
    INC   EBX
    INC   EBX
    INC   EBX
-   MOV   EDX,OFFSET ID
+   MOV   EDX,ID
    CALL  CPSLP
    JZ SCANREG_RET
    XOR   AL,80H
@@ -1164,8 +1158,8 @@ LOOKRET:
    CMP   AL,3  ;RET has 3 letters
    JNZ   LOOKUP
    DEC   EBX    ;EBX left link, EBX-1 last char of "RET"
-   OR	 BYTE PTR[EBX],080H
-   MOV   EDX,OFFSET RETSTR+2
+   OR	 BYTE[EBX],080H
+   MOV   EDX,RETSTR+2
 CHKRET:
    MOV   ESI,EDX
    LODSB
@@ -1206,7 +1200,7 @@ ALLRET_RET:
 
 LOOKUP: ;EBX:Left link, EBX-1:Last char of Identifier
    DEC   EBX
-   OR BYTE PTR[EBX],080H	;SET LAST CHAR WITH 0x80
+   OR BYTE[EBX],080H	;SET LAST CHAR WITH 0x80
 LOOKIT:
    MOV   EBX,[BASE]
    MOV   AL,BH
@@ -1307,7 +1301,7 @@ CPSLP_RET:
 GETLAB:
    MOV   EBX,0
    MOV   [LABPT],EBX
-   MOV   BYTE PTR[FLAG],-1
+   MOV   BYTE[FLAG],-1
    MOV   DH,0
    MOV   AL,[CHR]
    CMP   AL,' '+1
@@ -1334,7 +1328,7 @@ _LABEL_SKIP:
    MOV   CL,11
    JNZ   ERR5
    MOV   EDX,[PC]
-   MOV   DWORD PTR [EBX],1 ;SET FLAG
+   MOV   DWORD [EBX],1 ;SET FLAG
    INC   EBX
    INC   EBX
    INC   EBX
@@ -1346,14 +1340,14 @@ _LABEL_SKIP:
 ERR5: JMP   ERROR
 
 ASMLIN:
-   MOV   BYTE PTR[MAXFLG],1 ;Allow only B and W flags normally
+   MOV   BYTE[MAXFLG],1 ;Allow only B and W flags normally
    MOV   EBX,[PC]
    MOV   [OLDPC],EBX
    CALL  GETLAB
    JNC   ASMLIN_SKIP
    JMP   ENDLN
 ASMLIN_SKIP:
-   MOV   EBX,OFFSET LENID
+   MOV   EBX,LENID
    MOV   AL,[EBX]
    MOV   CL,12
    SUB   AL,2
@@ -1363,7 +1357,7 @@ ASMLIN_SKIP:
    INC   EBX
    INC   EBX
    INC   EBX
-   CMP   BYTE PTR[EBX],"f"   ;See if an 8087 mnemonic
+   CMP   BYTE[EBX],"f"   ;See if an 8087 mnemonic
    JZ NDPOP
    CMP   AL,5
    JNC   ERR5
@@ -1402,7 +1396,7 @@ LOCATE_OPTAB:
    JZ OPERR ;AH SHOULD NOT BE 0
 FINDOP:
    MOV   CH,CL
-   MOV   EDX,OFFSET ID+1
+   MOV   EDX,ID+1
    XCHG  EAX,EBP    ;Save count of opcodes in EBP
    CALL  CPSLP ;CMP EBX,EDX, CH=LENGTH; EBX++,EDX++
    JZ HAVOP
@@ -1426,19 +1420,19 @@ HAVOP:
    ;EBX:Pointer to function
    ;EBX+4:
    MOV   AL,[EBX+4]   ;Get opcode
-   JMP   DWORD PTR[EBX]
+   JMP   DWORD[EBX]
 
 NDPOP:   ;First letter is "F" so must be 8087 opcode ("Numeric Data Processor")
-   MOV   BYTE PTR[MAXFLG],4 ;Allow all type flags
+   MOV   BYTE[MAXFLG],4 ;Allow all type flags
    INC   EBX
-   CMP   BYTE PTR[EBX],"n"   ;"No-wait" form?
+   CMP   BYTE[EBX],"n"   ;"No-wait" form?
    MOV   AH,0
    JNZ   SAVNFLG
    MOV   AH,1
    DEC   AL
    INC   EBX    ;Skip over the "N"
 SAVNFLG:
-   MOV   BYTE PTR[NOWAIT],AH ;0 for wait, 1 for no wait
+   MOV   [NOWAIT],AH ;0 for wait, 1 for no wait
    CMP   AL,1
    JB OPERR    ;Not enough char left for valid opcode?
    CMP   AL,5
@@ -1446,7 +1440,7 @@ SAVNFLG:
    CBW
    XCHG  EAX,EDX    ;Save length in EDX
    MOV   ESI,EDX
-   OR BYTE PTR[ESI+EBX],80H   ;Set high bit of last character
+   OR BYTE[ESI+EBX],80H   ;Set high bit of last character
    MOV   AL,[EBX]     ;Get first char of opcode
    INC   EBX
    SUB   AL,"a"
@@ -1457,8 +1451,7 @@ SAVNFLG:
    SHL   EAX,1     ;Double to index into address table
    SHL   EAX,1
    XCHG  EAX,ESI    ;Put in index register
-   MOV   EDI,OFFSET NDPTAB ;Get start of opcode table for this letter
-   ADD   EDI,ESI
+   MOV   EDI,[ESI+NDPTAB] ;Get start of opcode table for this letter
 LOOKNDP:
    MOV   AH,[EDI]     ;Number of opcodes starting with this letter
    OR AH,AH
@@ -1467,7 +1460,8 @@ FNDNDP:
    INC   EDI
    MOV   ESI,EBX    ;Pointer to start of opcode
    MOV   ECX,EDX    ;Get length of opcode
-   REPE CMPSB       ;Compare opcode to table entry
+   REPE
+   CMPSB       ;Compare opcode to table entry
    JZ HAVNDP
    DEC   EDI    ;Back up in case that was last letter
    MOV   AL,80H      ;Look for char with high bit set
@@ -1482,14 +1476,14 @@ OPERRJ:  JMP OPERR
 TRY2XM1:
    CMP   AL,"2"-"a"
    JNZ   OPERR
-   MOV   EDI,OFFSET XM1
+   MOV   EDI,XM1
    JMP LOOKNDP
 
 SPECIALOP:
    AND   AL,7     ;Mask to special op number
    JZ _FWAIT      ;If zero, go handle FWAIT
 ;Handle FNOP
-   CMP   BYTE PTR[NOWAIT],0 ;Was "N" present (If not opcode was "FOP")
+   CMP   BYTE[NOWAIT],0 ;Was "N" present (If not opcode was "FOP")
    JZ OPERR
    MOV   AL,9BH      ;Need Wait opcode after all
    CALL  PUT
@@ -1499,13 +1493,13 @@ SPECIALOP:
    JMP   PUT
 
 _FWAIT:
-   CMP   BYTE PTR[NOWAIT],0 ;"FNWAIT" not legal
+   CMP   BYTE[NOWAIT],0 ;"FNWAIT" not legal
    JNZ   OPERRJ
    RET         ;Nothing to do - "WAIT" already sent
 
 HAVNDP:
    MOV   ESI,EDI
-   CMP   BYTE PTR[NOWAIT],0
+   CMP   BYTE[NOWAIT],0
    JNZ   NWAIT
    MOV   AL,9BH      ;Wait opcode
    CALL  PUT
@@ -1716,19 +1710,19 @@ GEN:
 ;Save byte of code in AL, given intermediate code bits in bits 7&8 of CH.
    CALL  PUTINC      ;Save it and bump code pointer
 GEN1:
-   MOV   AL,BYTE PTR[RELOC]
+   MOV   AL,[RELOC]
    RCL   CH,1
    RCL   AL,1
    RCL   CH,1
    RCL   AL,1
-   MOV   BYTE PTR[RELOC],AL
+   MOV   [RELOC],AL
    MOV   EBX,BCOUNT
-   DEC   BYTE PTR[EBX]
+   DEC   BYTE[EBX]
    JNZ   GEN1_RET
-   MOV   BYTE PTR[EBX],4
+   MOV   BYTE[EBX],4
    MOV   EBX,RELOC
    MOV   AL,[EBX]
-   MOV   BYTE PTR[EBX],0
+   MOV   BYTE[EBX],0
    MOV   EDI,[IY]
    MOV   [EDI],AL
    MOV   EBX,[CODE]
@@ -1739,7 +1733,7 @@ GEN1_RET:
    RET
 
 PUTINC:
-   INC   DWORD PTR[PC]
+   INC   DWORD[PC]
 PUTCD:
    MOV   EDI,[CODE]
    STOSB
@@ -1766,7 +1760,7 @@ PUTBYT:
    MOV   AL,BH
    OR AL,BL
    JNZ   PUTBW
-   MOV   EBX,[_DATA_]
+   MOV   EBX,[_DATA]
    OR AL,BH
    JZ PUTBW
    INC   BH
@@ -1775,7 +1769,7 @@ PUTBYT:
    JMP   ERROR
 PUTBW:
    MOV   EDX,[DLABEL]
-   MOV   EBX,[_DATA_]
+   MOV   EBX,[_DATA]
 PUTCHK:
    OR EDX,EDX
    JZ NOUNDEF
@@ -1817,7 +1811,7 @@ PUTADD:
 ;Save complete addressing mode. Addressing mode is in AL; if this is a register
 ;operation (>=C0), then the one byte will be saved as pure code. Otherwise,
 ;the details of the addressing mode will be investigated and the optional one-
-;or two-byte displacement will be added, as described by [_ADDR] and [ALABEL].
+;or two-byte displacement will be added, as described by [ADDR] and [ALABEL].
    PUSH  ECX
    PUSH  EDX
    PUSH  EBX
@@ -1835,7 +1829,7 @@ PUTADD:
    JZ PRET     ;Register to register operation?
    MOV   CH,AL    ;Save whether one- or two-byte displacement
 TWOBT:
-   MOV   EBX,[_ADDR]
+   MOV   EBX,[ADDR]
    MOV   EDX,[ALABEL]
    JMP PUTCHK
 
@@ -1951,7 +1945,7 @@ GRP5:
    OR AL,BL
    MOV   CL,30
    JNZ   ERR6
-   MOV   EBX,[_DATA_]
+   MOV   EBX,[_DATA]
    POP   EAX
    OR AL,AL
    JZ _ORG
@@ -1966,7 +1960,7 @@ PUTOP:
    MOV   AL,-3
    JMP NEWLOC
 _ALIGN:
-   MOV   AL,BYTE PTR[PC]
+   MOV   AL,BYTE[PC]
    AND   AL,1
    JZ _EQU_RET
    MOV   EBX,1
@@ -2017,7 +2011,7 @@ GRP7:
    OR AL,DL
    JNZ   ACCJ
    XCHG  EDX,EBX
-   MOV   EBX,[_DATA_]
+   MOV   EBX,[_DATA]
    MOV   AL,BL
    CBW
    CMP   EAX,EBX
@@ -2149,7 +2143,7 @@ GRP14:
    XCHG  AH,AL
    PUSH  EAX
    XCHG  AH,AL
-   MOV   BYTE PTR[MAXFLG],3 ;Allow "L" flag
+   MOV   BYTE[MAXFLG],3 ;Allow "L" flag
    CALL  GETOP
    CMP   AL,CONST
    JZ DIRECT
@@ -2195,7 +2189,7 @@ GOTOP:
    MOV   EDX,[PC]
    INC   EDX
    INC   EDX
-   SUB   [_DATA_],EDX
+   SUB   [_DATA],EDX
    JMP   PUTWOR
 LONGJ:
    POP   EAX
@@ -2265,7 +2259,7 @@ NODEC:
    MOV   AL,BH
    OR AL,BL
    JZ DORET
-   MOV   BYTE PTR[EBX],1
+   MOV   BYTE[EBX],1
    INC   EBX
    MOV   [EBX],EDX
    MOV   EBX,0
@@ -2282,17 +2276,17 @@ GRP17:
    CMP   AL,CONST
    MOV   CL,20
 ERR9: JNZ   ERR10
-   MOV   EBX,[_DATA_]
+   MOV   EBX,[_DATA]
    MOV   EDX,[PC]
    INC   EDX
    SUB   EBX,EDX
-   MOV   [_DATA_],EBX
+   MOV   [_DATA],EBX
    CALL  PUTBYT
    MOV   EBX,[DLABEL]
    MOV   AL,BH
    OR AL,BL
    JNZ   ERR9_RET
-   MOV   EBX,[_DATA_]
+   MOV   EBX,[_DATA]
    MOV   AL,BL
    CBW
    CMP   EAX,EBX    ;Signed 8-bit number?
@@ -2310,7 +2304,7 @@ GRP18:
    MOV   AL,BH
    OR AL,BL
    JNZ   GENINT
-   MOV   EBX,[_DATA_]
+   MOV   EBX,[_DATA]
    MOV   EDX,3
    SBB   EBX,EDX
    JNZ   GENINT
@@ -2327,9 +2321,9 @@ GRP19:   ;ESC opcode
    CMP   AL,CONST
    JNZ   ERRJ     ;First operand must be immediate
    MOV   CL,1EH
-   TEST  DWORD PTR[DLABEL],-1 ;See if all labels have been defined
+   TEST  DWORD[DLABEL],-1 ;See if all labels have been defined
    JNZ   ERRJ
-   MOV   EAX,[_DATA_]
+   MOV   EAX,[_DATA]
    CMP   EAX,64    ;Must only be 6 bits
    MOV   CL,1FH
    JNB   ERRJ
@@ -2360,9 +2354,9 @@ ESCMEM:
 
 ESCIMM:
    MOV   CL,1EH
-   TEST  DWORD PTR[DLABEL],-1 ;See if second operand is fully defined
+   TEST  DWORD[DLABEL],-1 ;See if second operand is fully defined
    JNZ   ERRJ
-   MOV   EAX,[_DATA_]
+   MOV   EAX,[_DATA]
    MOV   CL,1FH
    CMP   EAX,8     ;Must only be 3 bit value
    JNB   ERRJ
@@ -2423,11 +2417,11 @@ GETDAT:
 ENDDAT:
    CMP   AL,2
    JNZ   SAVDAT
-   MOV   EBX,[_DATA_]
+   MOV   EBX,[_DATA]
    LAHF
    OR BL,080H
    SAHF
-   MOV   [_DATA_],EBX
+   MOV   [_DATA],EBX
 SAVDAT:
    OR AL,AL
    JZ SAVDAT_SKIP
@@ -2437,11 +2431,11 @@ SAVDAT_SKIP:
 _IF:
    OR EBX,EBX
    JZ SKIPCD
-   INC   BYTE PTR[IFFLG]
+   INC   BYTE[IFFLG]
    RET
 
 SKIPCD:
-   INC   BYTE PTR[CHKLAB]
+   INC   BYTE[CHKLAB]
 SKIPLP:
    XOR   AL,AL
    CALL  NEXLIN
@@ -2450,28 +2444,30 @@ SKIPLP:
    JZ _END
    CALL  GETLAB
    JC SKIPLP
-   MOV   EDI,OFFSET LENID
-   MOV   ESI,OFFSET IFEND
+   MOV   EDI,LENID
+   MOV   ESI,IFEND
    MOV   CH,0
    MOV   CL,[EDI]
    INC   CL
-   REPE CMPSB
+   REPE
+   CMPSB
    JZ ENDCOND
-   MOV   EDI,OFFSET LENID
-   MOV   ESI,OFFSET IFNEST
+   MOV   EDI,LENID
+   MOV   ESI,IFNEST
    MOV   CL,[EDI]
    INC   CL
-   REPE CMPSB
+   REPE
+   CMPSB
    JNZ   SKIPLP
-   INC   BYTE PTR[CHKLAB]
+   INC   BYTE[CHKLAB]
    JMP SKIPLP
 
 ENDCOND:
-   DEC   BYTE PTR[CHKLAB]
+   DEC   BYTE[CHKLAB]
    JNZ   SKIPLP
    RET
 
-_ENDIF:
+ENDIF:
    MOV   AL,[IFFLG]
    MOV   CL,36
    DEC   AL
@@ -2496,32 +2492,32 @@ WREND:
    DEC   DL
    JNZ   WREND
 ;----------------------------
-   MOV   DWORD PTR[BUFPT],OFFSET  SRCBUF
-   MOV   BYTE PTR[HEXCNT],-5   ;FLAG HEX BUFFER AS EMPTY
-   MOV   DWORD PTR[LSTPNT],OFFSET  LSTBUF
-   MOV   DWORD PTR[HEXPNT],OFFSET  HEXBUF
+   MOV   DWORD[BUFPT],SRCBUF
+   MOV   BYTE[HEXCNT],-5   ;FLAG HEX BUFFER AS EMPTY
+   MOV   DWORD[LSTPNT],LSTBUF
+   MOV   DWORD[HEXPNT],HEXBUF
    XOR   EAX,EAX
    MOV   [ERRCNT],EAX
    MOV   [PC],EAX
    MOV   [LINE],EAX   ;Current line number
-   MOV   DWORD PTR[HEXADD],OBJECT
+   MOV   DWORD[HEXADD],OBJECT
    
    PUSH SEEK_SET
    PUSH 0
    PUSH [SRCFILE]
-   CALL fseek
+   CALL _fseek
    ADD ESP,12
 
    XOR   EAX,EAX
-   MOV   BYTE PTR[COUNT],AL
+   MOV   [COUNT],AL
    MOV   CH,1
-   MOV   ESI,OFFSET CODE_START
+   MOV   ESI,CODE_START
 ;------------------------
 FIXLINE:
-   MOV   EDI,OFFSET CODE_START ;Store code over used up intermediate code
+   MOV   EDI,CODE_START ;Store code over used up intermediate code
    XOR   AL,AL
-   MOV   BYTE PTR[SPC],AL ;No "special" yet (ORG, PUT, DS)
-   MOV   BYTE PTR[_ERR],AL   ;No second pass errors yet
+   MOV   [SPC],AL ;No "special" yet (ORG, PUT, DS)
+   MOV   [_ERR],AL   ;No second pass errors yet
 NEXBT:
    SHL   CL,1     ;Shift out last bit of previous code
    DEC   CH    ;Still have codes left?
@@ -2544,9 +2540,9 @@ FIXUP:
    XCHG  EAX,EBX
    LODSB       ;Get constant part
    ADD   EAX,[EBX+1]   ;Add symbol value to constant part
-   CMP   BYTE PTR[EBX],0  ;See if symbol got defined
+   CMP   BYTE[EBX],0  ;See if symbol got defined
    JNZ   HAVDEF
-   MOV   BYTE PTR[_ERR],100 ;Undefined - flag error
+   MOV   BYTE[_ERR],100 ;Undefined - flag error
    XOR   EAX,EAX
 HAVDEF:
    OR CL,CL    ;See if word or byte fixup
@@ -2563,9 +2559,9 @@ DEFBYT:
    CMP   AH,DH
    JNZ   RNGERR      ;Must always be in this range
 ;Check for short jump. If so, we're out of range; otherwise we're OK
-   CMP   EDI,OFFSET CODE_START+1  ;Only one other byte on line?
+   CMP   EDI,CODE_START+1  ;Only one other byte on line?
    JNZ   OBJBT    ;Can't be short jump if not
-   MOV   AL,BYTE PTR[CODE_START]  ;Get the first byte of this line
+   MOV   AL,[CODE_START]  ;Get the first byte of this line
    CMP   AL,0EBH     ;Direct short jump?
    JZ RNGERR
    AND   AL,0FCH
@@ -2576,7 +2572,7 @@ DEFBYT:
    MOV   AL,DL    ;Get code byte in AL
    JNZ   OBJBT    ;If not, we're OK
 RNGERR:
-   MOV   BYTE PTR[_ERR],101 ;Value out of range
+   MOV   BYTE[_ERR],101 ;Value out of range
    JMP OBJBT
 
 FINIJ:   JMP   FINI
@@ -2589,16 +2585,16 @@ EMARK:
    PUSH  ECX
    PUSH  ESI
    PUSH  EAX    ;Save error code
-   MOV   AH,BYTE PTR[LSTDEV]
+   MOV   AH,[LSTDEV]
    AND   AH,0FEH     ;Reset error indicator
-   OR AL,BYTE PTR[_ERR]   ;See if any errors on this line
+   OR AL,[_ERR]   ;See if any errors on this line
    JZ NOERR
    OR AH,1     ;Send line to console if error occured
 NOERR:
-   MOV   BYTE PTR[LSTDEV],AH
+   MOV   [LSTDEV],AH
    MOV   ECX,EDI
    CALL  STRTLIN     ;Print address of line
-   MOV   ESI,OFFSET CODE_START
+   MOV   ESI,CODE_START
    SUB   ECX,ESI    ;Get count of bytes of code
    JZ SHOLIN
 CODLP:
@@ -2607,7 +2603,7 @@ CODLP:
    LOOP  CODLP
 SHOLIN:
    MOV   AL,0
-   XCHG  AL,BYTE PTR[COUNT]
+   XCHG  AL,[COUNT]
    MOV   ECX,7     ;Allow 7 bytes of code per line
    SUB   CL,AL
    MOV   AL,' '
@@ -2621,23 +2617,23 @@ NOFIL:
    CALL  OUTLIN
    POP   EAX    ;Restore error code
    CALL  REPERR
-   MOV   AL,BYTE PTR[_ERR]
+   MOV   AL,[_ERR]
    CALL  REPERR
    POP   ESI
    POP   ECX
-   MOV   AL,BYTE PTR[SPC] ;Any special funtion?
+   MOV   AL,[SPC] ;Any special funtion?
    OR AL,AL
    JNZ   SPCFUN
    JMP   FIXLINE
 
 SPEND:
-   MOV   BYTE PTR[SPC],AL ;Record special function
+   MOV   [SPC],AL ;Record special function
    LODSW       ;Get it's data
-   MOV   [_DATA_],EAX
+   MOV   [_DATA],EAX
    JMP   NEXBT
 
 SPCFUN:
-   MOV   EDX,[_DATA_]
+   MOV   EDX,[_DATA]
    CMP   AL,-2
    JZ DORG
    CMP   AL,-3
@@ -2664,7 +2660,7 @@ OUTLIN:
 ;on one line (once for each line of object code bytes), so it sets a flag
 ;so the line will only be output on the first call.
    MOV   AL,-1
-   XCHG  AL,BYTE PTR[LINFLG]
+   XCHG  AL,[LINFLG]
    OR AL,AL
    JNZ   CRLF     ;Output line only if first time
    MOV   EAX,[LINE]
@@ -2685,7 +2681,7 @@ OUTLN:
 
 PRTCNT:
    MOV   EAX,[ERRCNT]
-   MOV   EBX,OFFSET ERCNTM
+   MOV   EBX,ERCNTM
 PRNT10:
    PUSH  EAX
    CALL  PRINT
@@ -2732,7 +2728,7 @@ SUPZ:
    JMP LIST
 
 STRTLIN:
-   MOV   BYTE PTR[LINFLG],0
+   MOV   BYTE[LINFLG],0
    MOV   EBX,[PC]
    MOV   AL,BH
    CALL  PHEX
@@ -2756,7 +2752,7 @@ WRTBUF:
    PUSH  EDI
    MOV   EDI,[LSTPNT]
    STOSB
-   CMP   EDI,OFFSET LSTBUF+LSTBUFSIZ
+   CMP   EDI,LSTBUF+LSTBUFSIZ
    JNZ   SAVPT
    PUSH  EAX
    PUSH  ECX
@@ -2779,18 +2775,18 @@ PHEX:
    JMP LIST
 
 FINI:
-   OR BYTE PTR[LSTDEV],1
+   OR BYTE[LSTDEV],1
    CALL  PRTCNT
-   MOV   EBX,OFFSET SYMSIZE
-   MOV   EAX,OFFSET HEAP_START
+   MOV   EBX,SYMSIZE
+   MOV   EAX,HEAP_START
    SUB   EAX,[_HEAP]     ;Size of symbol table
    CALL  PRNT10
-   MOV   EBX,OFFSET FRESIZE
+   MOV   EBX,FRESIZE
    MOV   EAX,[_HEAP]
    SUB   EAX,[CODE]      ;Free space remaining
    CALL  PRNT10
-   AND   BYTE PTR[LSTDEV],0FEH
-   MOV   AL,BYTE PTR[HEXCNT]
+   AND   BYTE[LSTDEV],0FEH
+   MOV   AL,[HEXCNT]
    CMP   AL,-5
    JZ L0012
    CALL  ENHEXL
@@ -2811,35 +2807,35 @@ HEXEND:
    CALL  PUTCHR
    CALL  WRTHEX      ;Flush HEX file buffer
    PUSH  [HEXFILE]
-   CALL  fclose
+   CALL  _fclose
    ADD   ESP,4
 
 DOSYMTAB:
-   MOV   EBX,OFFSET SYMMES
+   MOV   EBX,SYMMES
    CALL  PRINT
    MOV   EDX,[BASE]
    MOV   AL,DH
    OR AL,DL
    JZ ENDSYM
-   MOV   BYTE PTR[SYMLIN],SYMWID  ;No symbols on this line yet
+   MOV   BYTE[SYMLIN],SYMWID  ;No symbols on this line yet
    MOV   EBX,[_HEAP]
    MOV   ESP,EBX    ;Need maximum stack for recursive tree walk
    CALL  NODE
 ENDSYM:
-   TEST  BYTE PTR[LSTDEV],80H  ;Print listing to file?
+   TEST  BYTE[LSTDEV],80H  ;Print listing to file?
    JZ EXIT
    MOV AL,1AH
    CALL  WRTBUF      ;Write end-of-file mark
    MOV   EDI,[LSTPNT]
    CALL  FLUSHBUF
    PUSH  [LSTFILE]
-   CALL  fclose
+   CALL  _fclose
    ADD   ESP,4
 
 EXIT: 
    PUSH  [SRCFILE]
    XOR   EAX,EAX
-   CALL  fclose
+   CALL  _fclose
    ADD   ESP,4
    RET
 NODE:
@@ -2869,11 +2865,11 @@ L0014:
    INC   CL    ;Invert last bit
    AND   CL,1     ;Number of extra tabs needed (0 or 1)
    SHR   AL,1     ;Number of positions wide this symbol needs
-   SUB   BYTE PTR[SYMLIN],AL
+   SUB   [SYMLIN],AL
    JNC   WRTSYM      ;Will it fit?
    SUB   AL,SYMWID
    NEG   AL
-   MOV   BYTE PTR[SYMLIN],AL
+   MOV   [SYMLIN],AL
    CALL  CRLF     ;Start new line if not
 WRTSYM:
    MOV   AL,[EBX]
@@ -2893,14 +2889,14 @@ TABVAL:
    CALL  PHEX
    MOV   AL,[EBX+3]
    CALL  PHEX
-   CMP   BYTE PTR[SYMLIN],0 ;Will any more fit on line?
+   CMP   BYTE[SYMLIN],0 ;Will any more fit on line?
    JZ NEXSYMLIN
    MOV   AL,9
    CALL  LIST
    JMP RIGHTSON
 NEXSYMLIN:
    CALL  CRLF
-   MOV   BYTE PTR[SYMLIN],SYMWID
+   MOV   BYTE[SYMLIN],SYMWID
 RIGHTSON:
    POP   EBX
    MOV   EDX,[EBX]
@@ -2909,7 +2905,7 @@ RIGHTSON:
    RET
 
 SAVCD:
-   MOV   BYTE PTR[PREV],AL
+   MOV   [PREV],AL
    PUSH  EBX
    PUSH  ECX
    PUSH  EAX
@@ -2917,11 +2913,11 @@ SAVCD:
    CALL  CODBYT
    POP   EDX
    MOV   EBX,COUNT
-   INC   BYTE PTR[EBX]
+   INC   BYTE[EBX]
    MOV   AL,[EBX]
    CMP   AL,8
    JNZ   NOEXT
-   MOV   BYTE PTR[EBX],1
+   MOV   BYTE[EBX],1
    CALL  OUTLIN
    MOV   AL,' '
    MOV   CH,5
@@ -2933,8 +2929,8 @@ NOEXT:
    POP   EAX
    CALL  PHEXB
    POP   ECX
-   INC   DWORD PTR[PC]
-   INC   DWORD PTR[HEXADD]
+   INC   DWORD[PC]
+   INC   DWORD[HEXADD]
    POP   EBX
 NOEXT_RET:
    RET
@@ -2942,13 +2938,13 @@ NOEXT_RET:
 REPERR:
    OR AL,AL    ;Did an error occur?
    JZ NOEXT_RET
-   INC   DWORD PTR[ERRCNT]
+   INC   DWORD[ERRCNT]
    PUSH  EAX
-   MOV   EBX,OFFSET _ERRMES   ;Print "ERROR"
+   MOV   EBX,ERRMES   ;Print "ERROR"
    CALL  PRINT
    POP   EAX
 ;We have error number in AL. See if there's an error message for it
-   MOV   EDI,OFFSET ERRTAB
+   MOV   EDI,ERRTAB
    MOV   BL,80H
 ERRLOOK:
    SCASB       ;Do we have the error message
@@ -2994,7 +2990,7 @@ CODBYT:
    MOV   EBX,[HEXADD]
    MOV   [LASTAD],EBX
    INC   EDX
-   MOV   AL,BYTE PTR[HEXCNT]
+   MOV   AL,[HEXCNT]
    CMP   AL,-5
    JZ NEWLIN
    CMP   EBX,EDX
@@ -3004,15 +3000,15 @@ NEWLIN:
    MOV   AL,':'
    CALL  PUTCHR
    MOV   AL,-4
-   MOV   BYTE PTR[HEXCNT],AL
+   MOV   [HEXCNT],AL
    XOR   AL,AL
-   MOV   BYTE PTR[CHKSUM],AL
+   MOV   [CHKSUM],AL
    MOV   EBX,[HEXPNT]
    MOV   [HEXLEN],EBX
    CALL  HEXBYT
-   MOV   AL,BYTE PTR[HEXADD+1]
+   MOV   AL,BYTE[HEXADD+1]
    CALL  HEXBYT
-   MOV   AL,BYTE PTR[HEXADD]
+   MOV   AL,BYTE[HEXADD]
    CALL  HEXBYT
    XOR   AL,AL
    CALL  HEXBYT
@@ -3030,7 +3026,7 @@ HEXBYT:
    CALL  LHALF
    CALL  PUTCHR
    MOV   EBX,HEXCNT
-   INC   BYTE PTR[EBX]
+   INC   BYTE[EBX]
    MOV   AL,[EBX]
    CMP   AL,26
    JNZ   WRTHEX_RET
@@ -3043,8 +3039,8 @@ ENHEXL:
    CALL  LHALF
    STOSB
    MOV   AL,-6
-   MOV   BYTE PTR[HEXCNT],AL
-   MOV   AL,BYTE PTR[CHKSUM]
+   MOV   [HEXCNT],AL
+   MOV   AL,[CHKSUM]
    ADD   AL,CH
    NEG   AL
    CALL  HEXBYT
@@ -3054,7 +3050,7 @@ ENHEXL:
    CALL  PUTCHR
 WRTHEX:
 ;Write out the line
-   MOV   EDX,OFFSET HEXBUF
+   MOV   EDX,HEXBUF
    MOV   [HEXPNT],EDX
    SUB   EDI,EDX    ;Length of buffer
    MOV   ECX,EDI
@@ -3063,7 +3059,7 @@ WRTHEX:
    PUSH  ECX
    PUSH  1
    PUSH  EDX
-   CALL  fwrite
+   CALL  _fwrite
    ADD   ESP,16
 
    OR AL,AL
@@ -3079,7 +3075,7 @@ PUTCHR:
 
 FLUSHBUF: ;EDI FLUSH SIZE
    MOV   ECX,EDI
-   MOV   EDX,OFFSET LSTBUF
+   MOV   EDX,LSTBUF
    MOV   EDI,EDX
    SUB   ECX,EDX
    JZ LHALF_RET      ;Buffer empty?
@@ -3088,12 +3084,12 @@ FLUSHBUF: ;EDI FLUSH SIZE
    PUSH  ECX
    PUSH  1
    PUSH  EDX
-   CALL fwrite
+   CALL _fwrite
    ADD   ESP,16
    OR AL,AL
    JNZ LHALF_RET
 DSKFUL:
-   MOV   EBX,OFFSET WRTERR
+   MOV   EBX,WRTERR
    JMP   PRERR
 
 UHALF:
@@ -3110,10 +3106,8 @@ LHALF:
 LHALF_RET:
    RET
 
-;CODESEG ENDS
 
-.data
-;DATASEG SEGMENT "DATA" PUBLIC
+section .data
 
 NONE DB 0
 
@@ -3123,509 +3117,554 @@ NONE DB 0
 ; The label signifies which mnemonics the subtable applies to--A3, for example,
 ; means all 3-letter mnemonics beginning with A.
 
-A3 DB 7     ;items count
+A3:
+   DB 7     ;items count
    DB 'dd'  ;chars following 'a''
-   DD OFFSET GRP7  ;handler
+   DD GRP7  ;handler
    DB 2		;opcode or count of operand
    DB 'nd'
-   DD OFFSET GRP13
+   DD GRP13
    DB 22H
    DB 'dc'
 
-   DD OFFSET GRP7
+   DD GRP7
    DB 12H
    DB 'aa'
-   DD OFFSET PUT
+   DD PUT
    DB 37H
    DB 'as'
-   DD OFFSET PUT
+   DD PUT
    DB 3FH
    DB 'am'
-   DD OFFSET GRP11
+   DD GRP11
    DB 0D4H ;opcode
    DB 'ad'
-   DD OFFSET GRP11
+   DD GRP11
    DB 0D5H	;opcode
-A5 DB 1
+A5:
+   DB 1
    DB 'lign'
-   DD OFFSET _ALIGN
+   DD _ALIGN
    DB 0
-C3 DB 7
+C3:
+   DB 7
    DB 'mp'
-   DD OFFSET GRP7
+   DD GRP7
    DB 3AH
    DB 'lc'
-   DD OFFSET PUT
+   DD PUT
    DB 0F8H
    DB 'ld'
-   DD OFFSET PUT
+   DD PUT
    DB 0FCH
    DB 'li'
-   DD OFFSET PUT
+   DD PUT
    DB 0FAH
    DB 'mc'
-   DD OFFSET PUT
+   DD PUT
    DB 0F5H
    DB 'bw'
-   DD OFFSET PUT
+   DD PUT
    DB 98H
    DB 'wd'
-   DD OFFSET PUT
+   DD PUT
    DB 99H
-C4 DB 3
+C4:
+   DB 3
    DB 'all'
-   DD OFFSET GRP14
+   DD GRP14
    DB 9AH
    DB 'mpb'
-   DD OFFSET PUT
+   DD PUT
    DB 0A6H
    DB 'mpw'
-   DD OFFSET PUT
+   DD PUT
    DB 0A7H
-C5 DB 2
+C5:
+   DB 2
    DB 'mpsb'
-   DD OFFSET PUT
+   DD PUT
    DB 0A6H
    DB 'mpsw'
-   DD OFFSET PUT
+   DD PUT
    DB 0A7H
-D2 DB 5
+D2:
+   DB 5
    DB 'b'
-   DD OFFSET GRP23
+   DD GRP23
    DB 1
    DB 'w'
-   DD OFFSET GRP23
+   DD GRP23
    DB 0
    DB 'm'
-   DD OFFSET GRP23
+   DD GRP23
    DB 2
    DB 's'
-   DD OFFSET GRP5
+   DD GRP5
    DB 1
    DB 'i'
-   DD OFFSET PUT
+   DD PUT
    DB 0FAH
-D3 DB 4
+D3:
+   DB 4
    DB 'ec'
-   DD OFFSET GRP8
+   DD GRP8
    DB 49H
    DB 'iv'
-   DD OFFSET GRP10
+   DD GRP10
    DB 30H
    DB 'aa'
-   DD OFFSET PUT
+   DD PUT
    DB 27H
    DB 'as'
-   DD OFFSET PUT
+   DD PUT
    DB 2FH
-D4 DB 1
+D4:
+   DB 1
    DB 'own'
-   DD OFFSET PUT
+   DD PUT
    DB 0FDH
-E2 DB 1
+E2:
+   DB 1
    DB 'i'
-   DD OFFSET PUT
+   DD PUT
    DB 0FBH
-E3 DB 3 ;OPERANDS COUNT
+E3:
+   DB 3 ;OPERANDS COUNT
    DB 'qu'
-   DD OFFSET GRP5
+   DD GRP5
    DB 2
    DB 'sc'
-   DD OFFSET GRP19
+   DD GRP19
    DB 0D8H
    DB 'nd'
-   DD OFFSET _END
+   DD _END
    DB 0
-E5 DB 1
+E5:
+   DB 1
    DB 'ndif'
-   DD OFFSET _ENDIF
+   DD ENDIF
    DB 0
-H3 DB 1
+H3:
+   DB 1
    DB 'lt'
-   DD OFFSET PUT
+   DD PUT
    DB 0F4H
-H4 DB 1
+H4:
+   DB 1
    DB 'alt'
-   DD OFFSET PUT
+   DD PUT
    DB 0F4H
-I2 DB 2
+I2:
+   DB 2
    DB 'n'
-   DD OFFSET GRP4
+   DD GRP4
    DB 0E4H
    DB 'f'
-   DD OFFSET GRP5
+   DD GRP5
    DB 4
-I3 DB 4
+I3:
+   DB 4
    DB 'nc'
-   DD OFFSET GRP8
+   DD GRP8
    DB 41H
    DB 'nb'
-   DD OFFSET GRP4
+   DD GRP4
    DB 0E4H
    DB 'nw'
-   DD OFFSET GRP4
+   DD GRP4
    DB 0E5H
    DB 'nt'
-   DD OFFSET GRP18
+   DD GRP18
    DB 0CCH
-I4 DB 4
+I4:
+   DB 4
    DB 'mul'
-   DD OFFSET GRP10
+   DD GRP10
    DB 28H
    DB 'div'
-   DD OFFSET GRP10
+   DD GRP10
    DB 38H
    DB 'ret'
-   DD OFFSET PUT
+   DD PUT
    DB 0CFH
    DB 'nto'
-   DD OFFSET PUT
+   DD PUT
    DB 0CEH
-J2 DB 10
+J2:
+   DB 10
    DB 'p'
-   DD OFFSET GRP17
+   DD GRP17
    DB 0EBH
    DB 'z'
-   DD OFFSET GRP17
+   DD GRP17
    DB 74H
    DB 'e'
-   DD OFFSET GRP17
+   DD GRP17
    DB 74H
    DB 'l'
-   DD OFFSET GRP17
+   DD GRP17
    DB 7CH
    DB 'b'
-   DD OFFSET GRP17
+   DD GRP17
    DB 72H
    DB 'a'
-   DD OFFSET GRP17
+   DD GRP17
    DB 77H
    DB 'g'
-   DD OFFSET GRP17
+   DD GRP17
    DB 7FH
    DB 'o'
-   DD OFFSET GRP17
+   DD GRP17
    DB 70H
    DB 's'
-   DD OFFSET GRP17
+   DD GRP17
    DB 78H
    DB 'c'
-   DD OFFSET GRP17
+   DD GRP17
    DB 72H
-J3 DB 17
+J3:
+   DB 17
    DB 'mp'
-   DD OFFSET GRP14
+   DD GRP14
    DB 0EAH
    DB 'nz'
-   DD OFFSET GRP17
+   DD GRP17
    DB 75H
    DB 'ne'
-   DD OFFSET GRP17
+   DD GRP17
    DB 75H
    DB 'nl'
-   DD OFFSET GRP17
+   DD GRP17
    DB 7DH
    DB 'ge'
-   DD OFFSET GRP17
+   DD GRP17
    DB 7DH
    DB 'nb'
-   DD OFFSET GRP17
+   DD GRP17
    DB 73H
    DB 'ae'
-   DD OFFSET GRP17
+   DD GRP17
    DB 73H
    DB 'nc'
-   DD OFFSET GRP17
+   DD GRP17
    DB 73H
    DB 'ng'
-   DD OFFSET GRP17
+   DD GRP17
    DB 7EH
    DB 'le'
-   DD OFFSET GRP17
+   DD GRP17
    DB 7EH
    DB 'na'
-   DD OFFSET GRP17
+   DD GRP17
    DB 76H
    DB 'be'
-   DD OFFSET GRP17
+   DD GRP17
    DB 76H
    DB 'pe'
-   DD OFFSET GRP17
+   DD GRP17
    DB 7AH
    DB 'np'
-   DD OFFSET GRP17
+   DD GRP17
    DB 7BH
    DB 'po'
-   DD OFFSET GRP17
+   DD GRP17
    DB 7BH
    DB 'no'
-   DD OFFSET GRP17
+   DD GRP17
    DB 71H
    DB 'ns'
-   DD OFFSET GRP17
+   DD GRP17
    DB 79H
-J4 DB 6
+J4:
+   DB 6
    DB 'mps'
-   DD OFFSET GRP17
+   DD GRP17
    DB 0EBH
    DB 'cxz'
-   DD OFFSET GRP17
+   DD GRP17
    DB 0E3H
    DB 'nge'
-   DD OFFSET GRP17
+   DD GRP17
    DB 7CH
    DB 'nae'
-   DD OFFSET GRP17
+   DD GRP17
    DB 72H
    DB 'nbe'
-   DD OFFSET GRP17
+   DD GRP17
    DB 77H
    DB 'nle'
-   DD OFFSET GRP17
+   DD GRP17
    DB 7FH
-L3 DB 3
+L3:
+   DB 3
    DB 'ea'
-   DD OFFSET GRP6
+   DD GRP6
    DB 8DH
    DB 'ds'
-   DD OFFSET GRP6
+   DD GRP6
    DB 0C5H
    DB 'es'
-   DD OFFSET GRP6
+   DD GRP6
    DB 0C4H
-L4 DB 5
+L4:
+   DB 5
    DB 'oop'
-   DD OFFSET GRP17
+   DD GRP17
    DB 0E2H
    DB 'odb'
-   DD OFFSET PUT
+   DD PUT
    DB 0ACH
    DB 'odw'
-   DD OFFSET PUT
+   DD PUT
    DB 0ADH
    DB 'ahf'
-   DD OFFSET PUT
+   DD PUT
    DB 9FH
    DB 'ock'
-   DD OFFSET PUT
+   DD PUT
    DB 0F0H
-L5 DB 4
+L5:
+   DB 4
    DB 'oope'
-   DD OFFSET GRP17
+   DD GRP17
    DB 0E1H
    DB 'oopz'
-   DD OFFSET GRP17
+   DD GRP17
    DB 0E1H
    DB 'odsb'
-   DD OFFSET PUT
+   DD PUT
    DB 0ACH
    DB 'odsw'
-   DD OFFSET PUT
+   DD PUT
    DB 0ADH
-L6 DB 2
+L6:
+   DB 2
    DB 'oopne'
-   DD OFFSET GRP17
+   DD GRP17
    DB 0E0H
    DB 'oopnz'
-   DD OFFSET GRP17
+   DD GRP17
    DB 0E0H
-M3 DB 2
+M3:
+   DB 2
    DB 'ov'
-   DD OFFSET GRP1
+   DD GRP1
    DB 88H
    DB 'ul'
-   DD OFFSET GRP10
+   DD GRP10
    DB 20H
-M4 DB 2
+M4:
+   DB 2
    DB 'ovb'
-   DD OFFSET PUT
+   DD PUT
    DB 0A4H
    DB 'ovw'
-   DD OFFSET PUT
+   DD PUT
    DB 0A5H
-M5 DB 2
+M5:
+   DB 2
    DB 'ovsb'
-   DD OFFSET PUT
+   DD PUT
    DB 0A4H
    DB 'ovsw'
-   DD OFFSET PUT
+   DD PUT
    DB 0A5H
-N3 DB 3
+N3:
+   DB 3
    DB 'ot'
-   DD OFFSET GRP9
+   DD GRP9
    DB 10H
    DB 'eg'
-   DD OFFSET GRP9
+   DD GRP9
    DB 18H
    DB 'op'
-   DD OFFSET PUT
+   DD PUT
    DB 90H
-O2 DB 1
+O2:
+   DB 1
    DB 'r'
-   DD OFFSET GRP13
+   DD GRP13
    DB 0AH
-O3 DB 2
+O3:
+   DB 2
    DB 'ut'
-   DD OFFSET GRP4
+   DD GRP4
    DB 0E6H
    DB 'rg'
-   DD OFFSET GRP5
+   DD GRP5
    DB 0
-O4 DB 2
+O4:
+   DB 2
    DB 'utb'
-   DD OFFSET GRP4
+   DD GRP4
    DB 0E6H
    DB 'utw'
-   DD OFFSET GRP4
+   DD GRP4
    DB 0E7H
-P3 DB 2
+P3:
+   DB 2
    DB 'op'
-   DD OFFSET GRP22
+   DD GRP22
    DB 8FH
    DB 'ut'
-   DD OFFSET GRP5
+   DD GRP5
    DB 3
-P4 DB 2
+P4:
+   DB 2
    DB 'ush'
-   DD OFFSET GRP2
+   DD GRP2
    DB 0FFH
    DB 'opf'
-   DD OFFSET PUT
+   DD PUT
    DB 9DH
-P5 DB 1
+P5:
+   DB 1
    DB 'ushf'
-   DD OFFSET PUT
+   DD PUT
    DB 9CH
-R3 DB 6
+R3:
+   DB 6
    DB 'et'
-   DD OFFSET GRP16
+   DD GRP16
    DB 0C3H
    DB 'ep'
-   DD OFFSET PUT
+   DD PUT
    DB 0F3H
    DB 'ol'
-   DD OFFSET GRP12
+   DD GRP12
    DB 0
    DB 'or'
-   DD OFFSET GRP12
+   DD GRP12
    DB 8
    DB 'cl'
-   DD OFFSET GRP12
+   DD GRP12
    DB 10H
    DB 'cr'
-   DD OFFSET GRP12
+   DD GRP12
    DB 18H
-R4 DB 2
+R4:
+   DB 2
    DB 'epz'
-   DD OFFSET PUT
+   DD PUT
    DB 0F3H
    DB 'epe'
-   DD OFFSET PUT
+   DD PUT
    DB 0F3H
-R5 DB 2
+R5:
+   DB 2
    DB 'epnz'
-   DD OFFSET PUT
+   DD PUT
    DB 0F2H
    DB 'epne'
-   DD OFFSET PUT
+   DD PUT
    DB 0F2H
-S3 DB 11
+S3:
+   DB 11
    DB 'ub'
-   DD OFFSET GRP7
+   DD GRP7
    DB 2AH
    DB 'bb'
-   DD OFFSET GRP7
+   DD GRP7
    DB 1AH
    DB 'bc'
-   DD OFFSET GRP7
+   DD GRP7
    DB 1AH
    DB 'tc'
-   DD OFFSET PUT
+   DD PUT
    DB 0F9H
    DB 'td'
-   DD OFFSET PUT
+   DD PUT
    DB 0FDH
    DB 'ti'
-   DD OFFSET PUT
+   DD PUT
    DB 0FBH
    DB 'hl'
-   DD OFFSET GRP12
+   DD GRP12
    DB 20H
    DB 'hr'
-   DD OFFSET GRP12
+   DD GRP12
    DB 28H
    DB 'al'
-   DD OFFSET GRP12
+   DD GRP12
    DB 20H
    DB 'ar'
-   DD OFFSET GRP12
+   DD GRP12
    DB 38H
    DB 'eg'
-   DD OFFSET GRP21
+   DD GRP21
    DB 26H
-S4 DB 5
+S4:
+   DB 5
    DB 'cab'
-   DD OFFSET PUT
+   DD PUT
    DB 0AEH
    DB 'caw'
-   DD OFFSET PUT
+   DD PUT
    DB 0AFH
    DB 'tob'
-   DD OFFSET PUT
+   DD PUT
    DB 0AAH
    DB 'tow'
-   DD OFFSET PUT
+   DD PUT
    DB 0ABH
    DB 'ahf'
-   DD OFFSET PUT
+   DD PUT
    DB 9EH
-S5 DB 4
+S5:
+   DB 4
    DB 'casb'
-   DD OFFSET PUT
+   DD PUT
    DB 0AEH
    DB 'casw'
-   DD OFFSET PUT
+   DD PUT
    DB 0AFH
    DB 'tosb'
-   DD OFFSET PUT
+   DD PUT
    DB 0AAH
    DB 'tosw'
-   DD OFFSET PUT
+   DD PUT
    DB 0ABH
-T4 DB 1
+T4:
+   DB 1
    DB 'est'
-   DD OFFSET GRP20
+   DD GRP20
    DB 84H
-U2 DB 1
+U2:
+   DB 1
    DB 'p'
-   DD OFFSET PUT
+   DD PUT
    DB 0FCH
-W4 DB 1
+W4:
+   DB 1
    DB 'ait'
-   DD OFFSET PUT
+   DD PUT
    DB 9BH
-X3 DB 1
+X3:
+   DB 1
    DB 'or'
-   DD OFFSET GRP13
+   DD GRP13
    DB 32H
-X4 DB 2
+X4:
+   DB 2
    DB 'chg'
-   DD OFFSET GRP3
+   DD GRP3
    DB 86H
    DB 'lat'
-   DD OFFSET PUT
+   DD PUT
    DB 0D7H
 
 
 ; 8087 MNEMONIC TABLE
 ; Similar to 8086 table above, except NOT distinguished by opcode length
 
-;F2XM1
-XM1 DB	1		;One opcode
+XM1:	;F2XM1
+	DB	1		;One opcode
 	DB	"xm", '1'+ 080H
 	DB	1,0F0H
 
-NDPA DB	3
+NDPA:
+	DB	3
 	DB	"d", 'd'+ 080H
 	DB	6+ARITH,0C1H
 	DB	"dd", 'p'+ 080H
@@ -3633,13 +3672,15 @@ NDPA DB	3
 	DB	"b", 's'+ 080H
 	DB	1,0E1H
 
-NDPB DB	2
+NDPB:
+	DB	2
 	DB	"l", 'd'+ 080H
 	DB	7+NEEDOP+MEMORY,20H
 	DB	"st", 'p'+ 080H
 	DB	7+NEEDOP+MEMORY,30H
 
-NDPC DB	5
+NDPC:
+	DB	5
 	DB	"o", 'm'+ 080H
 	DB	0+ONEREG+REAL,0D1H
 	DB	"om", 'p'+ 080H
@@ -3651,7 +3692,8 @@ NDPC DB	5
 	DB	"le", 'x'+ 080H
 	DB	3,0E2H
 
-NDPD DB	6
+NDPD:
+	DB	6
 	DB	"i", 'v'+ 080H
 	DB	6+ARITH,0F1H
 	DB	"iv", 'p'+ 080H
@@ -3665,15 +3707,18 @@ NDPD DB	6
 	DB	"is", 'i'+ 080H
 	DB	3,0E1H
 
-NDPE DB	1
+NDPE:
+	DB	1
 	DB	"n", 'i'+ 080H
 	DB	3,0E0H
 
-NDPF DB	1
+NDPF:
+	DB	1
 	DB	"re", 'e'+ 080H
 	DB	5+NEEDOP+ONEREG,0
 
-NDPI DB	13
+NDPI:
+	DB	13
 	DB	"ad", 'd'+ 080H
 	DB	2+NEEDOP+INTEGER,0
 	DB	"l", 'd'+ 080H
@@ -3701,7 +3746,8 @@ NDPI DB	13
 	DB	"ni", 't'+ 080H
 	DB	3,0E3H
 
-NDPL DB	10
+NDPL:
+	DB	10
 	DB	'd' + 080H
 	DB	1+NEEDOP+ONEREG+REAL+EXTENDED,0
 	DB	"d", 'z'+ 080H
@@ -3723,21 +3769,25 @@ NDPL DB	10
 	DB	"den", 'v'+ 080H
 	DB	1+NEEDOP+MEMORY,20H
 
-NDPM DB	2
+NDPM:
+	DB	2
 	DB	"u", 'l'+ 080H
 	DB	6+ARITH,0C9H
 	DB	"ul", 'p'+ 080H
 	DB	NEEDOP+STACKOP,8
 
-NDPO DB	1
+NDPO:
+	DB	1
 	DB	'p' + 080H
 	DB	NEEDOP+1,0	;Flag special handling
 
-NDPN DB	1
+NDPN:
+	DB	1
 	DB	"o", 'p'+ 080H
 	DB	1,0D0H
 
-NDPP DB	3
+NDPP:
+	DB	3
 	DB	"re", 'm'+ 080H
 	DB	1,0F8H
 	DB	"ta", 'n'+ 080H
@@ -3745,13 +3795,15 @@ NDPP DB	3
 	DB	"ata", 'n'+ 080H
 	DB	1,0F3H
 
-NDPR DB	2
+NDPR:
+	DB	2
 	DB	"ndin", 't'+ 080H
 	DB	1,0FCH
 	DB	"sto", 'r'+ 080H
 	DB	5+NEEDOP+MEMORY,20H
 
-NDPS DB	12
+NDPS:
+	DB	12
 	DB	't' + 080H
 	DB	5+NEEDOP+ONEREG+REAL,0D0H
 	DB	"t", 'p'+ 080H
@@ -3777,15 +3829,18 @@ NDPS DB	12
 	DB	"ts", 'w'+ 080H
 	DB	5+NEEDOP+MEMORY,38H
 
-NDPT DB	1
+NDPT:
+	DB	1
 	DB	"s", 't'+ 080H
 	DB	1,0E4H
 
-NDPW DB	1
+NDPW:
+	DB	1
 	DB	"ai", 't'+ 080H
 	DB	NEEDOP,0	;Flag special handling
 
-NDPX DB	3
+NDPX:
+	DB	3
 	DB	"c", 'h'+ 080H
 	DB	1+ONEREG,0C9H
 	DB	"a", 'm'+ 080H
@@ -3793,13 +3848,15 @@ NDPX DB	3
 	DB	"trac", 't'+ 080H
 	DB	1,0F4H
 
-NDPY DB	2
+NDPY:
+	DB	2
 	DB	"l2", 'x'+ 080H
 	DB	1,0F1H
 	DB	"l2xp", '1'+ 080H
 	DB	1,0F9H
 
 ALIGN 4
+OPTAB:
 ; Table of pointers  to mnemonics. For each letter of the alphabet (the
 ; starting letter of the mnemonic), there are 5 entries. Each entry
 ; corresponds to a mnemonic whose length is 2, 3, 4, 5, and 6 characters
@@ -3813,7 +3870,7 @@ ALIGN 4
 ; letter of the mnemonic and its length, then add a new subsection to
 ; the mnemonic table in alphabetical order.
 
-OPTAB DD NONE  ;A2
+   DD NONE  ;A2
    DD A3    ;A3
    DD NONE  ;A4
    DD A5    ;A5
@@ -3944,9 +4001,10 @@ OPTAB DD NONE  ;A2
    DD NONE
    DD NONE
 ALIGN 4
+NDPTAB:
 ;Lookup table for 8087 mnemonics. There is one entry for each letter of the
 ;alphabet
-NDPTAB DD NDPA
+   DD NDPA
    DD NDPB
    DD NDPC
    DD NDPD
@@ -3977,7 +4035,8 @@ NDPTAB DD NDPA
 
 ;Error message table
 
-ERRTAB DB	1, "Register not allowed in immediate valu", 'e'+ 080H
+ERRTAB:
+	DB	1, "Register not allowed in immediate valu", 'e'+ 080H
 	DB	2, "Index or base register must be BP, BX, SI, or D", 'I'+ 080H
 	DB	3, "Only one base register (BX, BP) allowe", 'd'+ 080H
 	DB	4, "Only one index register (SI or DI) allowe", 'd'+ 080H
@@ -4011,20 +4070,20 @@ ERRTAB DB	1, "Register not allowed in immediate valu", 'e'+ 080H
 	DB	101, "Value out of range (forward", ')'+ 080H
 	DB	255
 
-_ERRMES	DB	'***** ERROR: ',0A0H
-NOSPAC	DB	13,10,'File creation error',13,10,"$"
-NOMEM	DB	13,10,'Insufficient memory',13,10,'$'
-NOFILE	DB	13,10,'File not found',13,10,'$'
-WRTERR	DB	13,10,'Disk full',13,10,'$'
-BADDSK	DB	13,10,'Bad disk specifier',13,10,'$'
-ERCNTM	DB	13, 10, 13, 10, 'Error Count ', '='+ 080H
+ERRMES:	DB	'***** ERROR: ', ' '+ 080H
+NOSPAC:	DB	13,10,'File creation error',13,10,"$"
+NOMEM:	DB	13,10,'Insufficient memory',13,10,'$'
+NOFILE:	DB	13,10,'File not found',13,10,'$'
+WRTERR:	DB	13,10,'Disk full',13,10,'$'
+BADDSK:	DB	13,10,'Bad disk specifier',13,10,'$'
+ERCNTM:	DB	13, 10, 13, 10, 'Error Count ', '='+ 080H
 SYMSIZE	DB	13, 10, 'Symbol Table size =', ' '+ 080H
 FRESIZE	DB	'Free space =       ', ' '+ 080H
-SYMMES	DB	13, 10, 'Symbol Tabl', 'e'+ 080H, 13, 10, 13, 10
-EXTEND	DB	'.ASM',0,0
-IFEND	DB	5,'endif'
-IFNEST	DB	2,'if'
-RETSTR	DB	're', 't'+ 080H
+SYMMES:	DB	13, 10, 'Symbol Tabl', 'e'+ 080H, 13, 10, 13, 10
+EXTEND:	DB	'.ASM',0,0
+IFEND:	DB	5,'endif'
+IFNEST:	DB	2,'if'
+RETSTR:	DB	're', 't'+ 080H
 ;NOTICE: should use rb to make length correct
 OPEN_FLAG  DB 'rb',0
 WRITE_FLAG DB 'wb',0
@@ -4032,7 +4091,7 @@ WRITE_FLAG DB 'wb',0
 REGTAB  DB 'bdca'
 SEGTAB  DB 'dsce'
 
-SRCNAME  DB (NAME_LENGTH + 2) DUP(0)
+SRCNAME  TIMES (NAME_LENGTH + 2) DB 0
 
 SRCNAME_LENGTH DD 0
 SRCLENGTH DD 0
@@ -4040,32 +4099,32 @@ SRCFILE  DD 0
 HEXFILE  DD 0
 LSTFILE  DD 0
 
-HEXNAME  DB (NAME_LENGTH + 2) DUP(0)
+HEXNAME  TIMES (NAME_LENGTH + 2) DB 0
 
-LSTNAME  DB (NAME_LENGTH + 2) DUP(0)
+LSTNAME  TIMES (NAME_LENGTH + 2) DB 0
 ALIGN 4
 MAXFLG  DB 0
 FLAG    DB 0
 ;4+80
 LENID   DD 0	;USE 4 BYTES
-ID      DB 80 DUP(0)
+ID      TIMES 80 DB 0
 ALIGN 4
 PC      DD 0
 OLDPC   DD 0
 LABPT   DD 0
-_ADDR    DD 0
+ADDR    DD 0
 ALABEL  DD 0
-_DATA_   DD 0
+_DATA   DD 0
 DLABEL  DD 0
 CON     DD 0
 UNDEF   DD 0
-CHR     DB -1
-SYM     DB 0
+CHR     DD -1
+SYM     DD 0
 BASE    DD 0
 _HEAP   DD 0
 SYMLIN  DD 0
 CODE    DD 0
-DATSIZ  DB 0
+DATSIZ  DD 0
 RELOC   DD 0
 BCOUNT  DD 0
 COUNT   DD 0
@@ -4078,8 +4137,8 @@ HEXCNT  DD 0
 CHKSUM  DD 0
 LINFLG  DD 0
 PREV    DD 0
-IFFLG   DB 0
-CHKLAB  DB 0
+IFFLG   DD 0
+CHKLAB  DD 0
 ERRCNT  DD 0
 LSTRET  DD 0
 RETPT   DD 0
@@ -4096,17 +4155,15 @@ CHAR_LOCATION DD 0
 LAST_READ_CHAR_COUNT DD 0
 TOTAL_READ_CHAR_COUNT DD 0
 SRCBUF_COUNT DD 0
-HEXBUF  DB HEXBUFSIZ DUP(0)
-LSTBUF  DB LSTBUFSIZ DUP(0)
+HEXBUF  TIMES HEXBUFSIZ DB 0
+LSTBUF  TIMES LSTBUFSIZ DB 0
 ALIGN 4
 BUFPT   DD 0
-SRCBUF  DB BUFSIZ DUP(0)
+SRCBUF  TIMES BUFSIZ DB 0
 		DD 0
-        DB 100H DUP(0)
+        TIMES 100H DB 0
 ALIGN 4
-CODE_START DB 10000H DUP(0)
 ;1M
-HEAP_START DB 10000H DUP(0)
-
-;DATASEG ENDS
-		END REAL_START
+CODE_START TIMES 100000H DB 0
+;1M
+HEAP_START TIMES 100000H DB 0
