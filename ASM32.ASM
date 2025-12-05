@@ -30,7 +30,8 @@ SYMWID   EQU   5  ;5 symbols per line in dump
 BUFSIZ   EQU   1024  ;Source code buffer
 LSTBUFSIZ   EQU   BUFSIZ   ;List file buffer
 HEXBUFSIZ   EQU   70 ;Hex file buffer (26*2 + 5*2 + 3 + EXTRA)
-EOL      EQU   13 ;ASCII carriage return
+EOL      EQU   13 ;\r=13 ASCII carriage return
+NEL		 EQU   10 ;\n=10 ASCII new line
 OBJECT   EQU   100H  ;DEFAULT "PUT" ADDRESS
 NAME_LENGTH EQU 260 ;Maximum length of file name
 
@@ -41,7 +42,7 @@ REG      EQU   2  ;8-bit register
 XREG  EQU   3  ;16-bit register (except segment registers)
 SREG  EQU   4  ;Segment register
 FREG  EQU   6  ;8087 floating point register
-
+NODESIZE EQU 80H ;128
 ;Bits to build 8087 opcode table entries
 ONEREG   EQU   40H   ;Single ST register OK as operand
 NEEDOP   EQU   80H   ;Must have an operand
@@ -51,6 +52,9 @@ EXTENDED EQU   10H   ;For Long integers or Temporary real
 MEMORY   EQU   18H   ;For general memory operations
 STACKOP  EQU   10H   ;Two register arithmetic with pop
 ARITH EQU   8  ;Non-pop arithmetic operations
+SEEK_SET EQU 0
+SEEK_CUR EQU 1
+SEEK_END EQU 2
 section .text
 
 GLOBAL _ASM32_ENTRY@8
@@ -61,7 +65,8 @@ EXTERN _fread
 EXTERN _fwrite
 EXTERN _fclose
 EXTERN _feof
-
+EXTERN _fseek
+EXTERN _ftell
     ;int argc, char* argv[]
     ;ecx, eax
 _ASM32_ENTRY@8:
@@ -119,7 +124,23 @@ DO_OPEN:
    OR   EAX,EAX
    JZ   NOFILE
    ;SAVE FILE HANDLE
+   
    MOV   [SRCFILE],EAX
+   ;GET FILE SIZE
+   PUSH SEEK_END
+   PUSH 0
+   PUSH [SRCFILE]
+   CALL _fseek
+   ADD ESP,12
+   PUSH [SRCFILE]
+   CALL _ftell
+   ADD ESP,4
+   MOV DWORD[SRCLENGTH],EAX
+   PUSH SEEK_SET
+   PUSH 0
+   PUSH [SRCFILE]
+   CALL _fseek
+   ADD ESP,12
 
    ;SET HEX FILE NAME
    MOV   ESI,SRCNAME
@@ -180,12 +201,14 @@ DO_OPEN:
    MOV   [_HEAP],EAX  ;BACK END OF SYMBOL TABLE SPACE
    MOV   DWORD[BCOUNT],4  ;CODE BYTES PER RELOCATION BYTE
    MOV   ECX,BUFSIZ
+   XOR   EAX,EAX
+   DEC   EAX
 ;Assemble each line of code
 ;------------------------------------------------------------------------------
 
 _LOOP:
-   CALL  NEXTCHR     ;Get first character on line
-   CMP   AL,1AH      ;EOF
+   CALL NEXTCHR
+   OR AL,AL      ;EOF
    JZ ENDJ           ;FOUND EOF GOTO NEXT PASS
    MOV   AL,-1    ;Flag that no tokens have been read yet
    MOV   [SYM],AL
@@ -197,7 +220,7 @@ _LOOP:
 L0002:   
    CMP   AL,';'
    JZ ENDLN
-   CMP   AL,EOL      ;\r=10, \n=13
+   CMP   AL,EOL      ;\r=13, \n=10
    JZ ENDLN
    CMP   AL,14H      ;Garbage at end of line error
    JMP ENDLIN
@@ -219,7 +242,7 @@ NEXLIN:
 GETEOL:
    CMP   AL,10       ;CHR=\r
    JZ NEXLIN_RET
-   CMP   AL,1AH
+   OR AL,AL
    JZ ENDJ
    CALL  NEXTCHR     ;Scan over comments for linefeed
    JMP GETEOL
@@ -269,46 +292,48 @@ NEXTCHR: ;DONE
    PUSH  ESI
    CALL _fread
    ADD   ESP,16
+   OR    EAX,EAX
    ;COUNT ALL READ BYTES
    ;
-   MOV   ECX,DWORD[LAST_READ_CHAR_COUNT]
-   ADD   DWORD[OVERALL_CHAR_POS],ECX
    MOV   DWORD[LAST_READ_CHAR_COUNT],EAX
    ADD   DWORD[TOTAL_READ_CHAR_COUNT],EAX
+   ;BUF COUNT++
+   INC   DWORD[SRCBUF_COUNT]
 
-   XOR   EAX,EAX
-   MOV   DWORD[CURRENT_CHAR_MAX_DELTA_POS],EAX
    XCHG  EAX,EDX    ;Put error code in DL
    POP   EAX    ;Restore AH
-   MOV   AL,DL    ;Error code back in AL
+   ;MOV   AL,DL    ;Error code back in AL
    POP   EDX
-   PUSH  [SRCFILE]
-   CALL  _feof
-   ADD   ESP,4
-   OR    EAX,EAX
-   JZ   GETCH
-   ;EOF if zero
-   MOV   AL,1AH      ;Possibly signal End of File
-   JZ NOMOD    ;If nothing read
+
 GETCH:
-   MOV   DWORD[CHAR_POS_ADVANCED],0
+;EAX=PTR 
    LODSB
-;UPDATE MAX DELTA
-   PUSH  EAX
-   PUSH  ESI
-   MOV   EAX,SRCBUF
-   SUB   ESI,EAX
-   CMP   ESI, DWORD[CURRENT_CHAR_MAX_DELTA_POS]
-   JB    SKIP_SET_MAX_DELTA
-   MOV   DWORD[CURRENT_CHAR_MAX_DELTA_POS],ESI
-   MOV   DWORD[CHAR_POS_ADVANCED],1
-SKIP_SET_MAX_DELTA: 
-   POP   ESI
-   POP   EAX
-   CMP   AL,10
+   ;P=(SRCBUF_COUNT*BUFSIZ)+(ESI-SRCBUF)
+   PUSH ECX
+   MOV ECX,[SRCBUF_COUNT]
+   DEC ECX
+   PUSH EAX
+   MOV EAX,BUFSIZ
+   MUL ECX
+   XCHG ECX,EAX
+   POP EAX
+   ADD ECX,ESI
+   SUB ECX,SRCBUF
+   MOV [CHAR_LOCATION],ECX
+   CMP ECX,[SRCLENGTH]
+   POP ECX
+   JNZ    SKIP_FOUND_END
+   
+   ;USE 0 to replace 1A (even it it 1A)
+   MOV [BUFPT],ESI
+   XOR   AL,AL      ;Possibly signal End of File
+   MOV   [CHR],AL
+   RET
+
+SKIP_FOUND_END:
+   CMP   AL,13
    JNZ	 SKIP_LINE_END
-   CMP   DWORD[CHAR_POS_ADVANCED],1
-   JNZ   SKIP_LINE_END
+   LODSB ;10
    INC   DWORD [LINE_COUNT]
 SKIP_LINE_END:
    CMP   ESI,SRCBUF+BUFSIZ
@@ -316,6 +341,13 @@ SKIP_LINE_END:
    MOV   ESI,SRCBUF
 NOMOD:
    MOV   [BUFPT],ESI
+   OR AL,AL
+   JNZ SKIP_NOMOD
+   MOV ESI,SRCBUF
+   MOV [BUFPT],ESI
+   JMP NEXTCHR
+SKIP_NOMOD:
+
    MOV   [CHR],AL
    RET
 
@@ -920,7 +952,7 @@ GOTIT:
 
 ERR4: JMP   ERROR
 
-GET_LETTER: ;SAVE LABEL AND RETURN ':'
+GETLET: ;SAVE LABEL AND RETURN ':'
    CALL  SCANB
    CMP   AL,EOL
    STC
@@ -1086,8 +1118,11 @@ SCANREG:
 SCANREG_RET:
    RET
 ;-----------------------------------------------
-LOOK:
+LOOK:	;EBX:base of nodes
    MOV   CH,[EBX]
+   INC   EBX
+   INC   EBX
+   INC   EBX
    INC   EBX
    MOV   EDX,ID
    CALL  CPSLP
@@ -1096,25 +1131,22 @@ LOOK:
    ROL   AL,1     ;Make end-of-symbol bit least significant
    MOV   CL,AL
    DEC   EBX
-   MOV   AL,[EBX]
+   MOV   AL,[EBX] ;EBX: Start of ID in nodes
    XOR   AL,80H
    ROL   AL,1
    CMP   AL,CL
+
+   ADD   EBX,NODESIZE
    JNC   SMALL
-
-   INC   CH
-   INC   CH
-
+   ADD  EBX,4 ;Skip Left Link
 SMALL:
-   PUSH  EDX
-   XOR   EDX,EDX
-   MOV   DL,CH
-   ADD   EBX,EDX
-   POP   EDX
-   MOV   EDX,[EBX]
+   MOV   EDX,[EBX]	;EBX points to LEFT_LINK or RIGHT LINK
    INC   EBX
+   INC	 EBX
+   INC   EBX
+   INC	 EBX
    MOV   AL,DL
-   OR AL,DH
+   OR    AL,DH ;OR DH,DL
    STC
    JZ ALLRET_RET
    XCHG  EDX,EBX
@@ -1167,7 +1199,7 @@ ALLRET_RET:
 
 LOOKUP: ;EBX:Left link, EBX-1:Last char of Identifier
    DEC   EBX
-   OR BYTE[EBX],080H
+   OR BYTE[EBX],080H	;SET LAST CHAR WITH 0x80
 LOOKIT:
    MOV   EBX,[BASE]
    MOV   AL,BH
@@ -1190,12 +1222,12 @@ _ENTER:
    PUSH  EBX    ;Save pointer to link field
    CALL  CREATE      ;Add the node
    POP   ESI
-   MOV   [ESI-1],EDX   ;Link new node
+   MOV   [ESI-80],EDX   ;Link new node
    RET         ;Zero was set by CREATE
 
 EMPTY:
    CALL  CREATE
-   MOV   [BASE],EDX
+   MOV   [BASE],EDX ;Save node start to BASE
    RET
 
 
@@ -1203,27 +1235,26 @@ CREATE:
 
 ; Add a new node to the identifier tree. The identifier is at ID with
 ; bit 7 of the last character set to one. The length of the identifier is
-; in LENID, which is ID-1.
+; in LENID, which is ID-4
 ;
 ; Node format:
-;  1. Length of identifier (1 byte)
-;  2. Identifier (1-80 bytes)
-;  3. Left link (4-byte pointer to alphabetically smaller identifiers)
-;  4. Right link (4-byte pointer 0 if none larger)
+;  4+84+4+4+4+4 =104 ->USE 128
+;  1. Length of identifier (4 byte) :
+;  2. Identifier (1-80 bytes) :EXTEND TO 1-84, total 84
+;  3. Left link (4-byte pointer to alphabetically smaller identifiers) :4
+;  4. Right link (4-byte pointer 0 if none larger) :4
 ;  5. Data field:
-;     a. Defined flag (0=undefined, 1=defined) (1 byte)
-;     b. Value (4 bytes)
+;     a. Defined flag (0=undefined, 1=defined) (1 byte) :4
+;     b. Value (4 bytes) :4
 ;
 ; This routine returns with AL=zero and zero flag set (which indicates
 ; on return from LOOKUP that it has not yet been defined), EDX points
 ; to start of new node, and EBX points to data field of new node.
 
-   MOV   AL,[LENID]
-   ADD   AL,8 + 6  ;Storage needed for the node
+   ;Storage needed for the node ;8 + 6 + 2
    MOV   EBX,[_HEAP]
    XOR   EDX,EDX
-   MOV   DL,AL
-   SUB   EBX,EDX    ;Heap grows downward
+   SUB   EBX,NODESIZE    ;Heap grows downward -128
    MOV   [_HEAP],EBX
    XCHG  EDX,EBX
    MOV   EBX,[CODE]   ;Check to make sure there's enough
@@ -1232,27 +1263,24 @@ CREATE:
    JB SKIP_ABORT
    JMP   ABORT
 SKIP_ABORT:
-   PUSH  EDX
-   MOV   EBX,LENID
+   PUSH  EDX	;EDX: START POS OF NODE
+   MOV   EBX,LENID ;EBX: LENID + ID
    XOR   ECX,ECX
-   MOV   CL,[EBX] ;CL=id length
-   INC   CL
-   CLD
+   ;MOV   CL,[EBX] ;EBX:ID,CL=id length
+   MOV   ECX,4+80
+   CLD 
    MOV   ESI,EBX
    MOV   EDI,EDX
    REP   MOVSB       ;Move identifier and length into node
-   MOV   EDX,EDI
-   MOV   EBX,ESI
-   MOV   CH,4+4 ;2 Pointers
-   XCHG  EDX,EBX
-NILIFY:
-   MOV   [EBX],CL     ;Zero left and right links
-   INC   EBX
-   DEC   CH
-   JNZ   NILIFY
-   XOR   AL,AL    ;Set zero flag
-   MOV   [EBX],AL     ;Zero defined flag ;EBX+1:Value 
-   POP   EDX    ;Restore pointer to node
+   
+   MOV   EBX,EDI
+   MOV   EDX,ESI
+   XOR   EAX,EAX
+   STOSD ;LEFT LINK
+   STOSD ;RIGHT LINK
+   STOSD ;ZERO FLAG
+   STOSD ;VALUE
+   POP   EDX    ;Restore pointer to node start
    RET
 
 CPSLP: ;COMPARE EDX: EBX (CH=LENGTH)
@@ -1269,7 +1297,7 @@ CPSLP: ;COMPARE EDX: EBX (CH=LENGTH)
 CPSLP_RET:
    RET
 
-GET_LABEL:
+GETLAB:
    MOV   EBX,0
    MOV   [LABPT],EBX
    MOV   BYTE[FLAG],-1
@@ -1279,7 +1307,7 @@ GET_LABEL:
    JC NOT1
    OR DH,001H
 NOT1:
-   CALL  GET_LETTER
+   CALL  GETLET
    JC CPSLP_RET
    CMP   AL,':'
    JNZ   LABCHK
@@ -1293,17 +1321,20 @@ _LABEL:
    MOV   AL,[CHKLAB]
    OR AL,AL
    JZ _LABEL_SKIP
-   JMP   GET_LETTER
+   JMP   GETLET
 _LABEL_SKIP:
-   CALL  LOOKUP ;EBX:Left link
+   CALL  LOOKUP ;EBX:Left link,EDX:Last top
    MOV   CL,11
    JNZ   ERR5
    MOV   EDX,[PC]
-   MOV   BYTE[EBX],1
+   MOV   DWORD [EBX],1 ;SET FLAG
    INC   EBX
-   MOV   [EBX],EDX
+   INC   EBX
+   INC   EBX
+   INC   EBX
+   MOV   [EBX],EDX	;Set Left lik with last top
    MOV   [LABPT],EBX
-   JMP   GET_LETTER
+   JMP   GETLET
 
 ERR5: JMP   ERROR
 
@@ -1311,7 +1342,7 @@ ASMLIN:
    MOV   BYTE[MAXFLG],1 ;Allow only B and W flags normally
    MOV   EBX,[PC]
    MOV   [OLDPC],EBX
-   CALL  GET_LABEL
+   CALL  GETLAB
    JNC   ASMLIN_SKIP
    JMP   ENDLN
 ASMLIN_SKIP:
@@ -1321,6 +1352,9 @@ ASMLIN_SKIP:
    SUB   AL,2
    MOV   CH,AL
    JC ERR5
+   INC   EBX
+   INC   EBX
+   INC   EBX
    INC   EBX
    CMP   BYTE[EBX],"f"   ;See if an 8087 mnemonic
    JZ NDPOP
@@ -1414,6 +1448,7 @@ SAVNFLG:
    JA OPERR
    CBW
    SHL   EAX,1     ;Double to index into address table
+   SHL   EAX,1
    XCHG  EAX,ESI    ;Put in index register
    MOV   EDI,[ESI+NDPTAB] ;Get start of opcode table for this letter
 LOOKNDP:
@@ -2404,9 +2439,9 @@ SKIPLP:
    XOR   AL,AL
    CALL  NEXLIN
    CALL  NEXTCHR
-   CMP   AL,1AH
+   OR AL,AL
    JZ _END
-   CALL  GET_LABEL
+   CALL  GETLAB
    JC SKIPLP
    MOV   EDI,LENID
    MOV   ESI,IFEND
@@ -2465,18 +2500,11 @@ WREND:
    MOV   [LINE],EAX   ;Current line number
    MOV   DWORD[HEXADD],OBJECT
    
-   PUSH  [SRCFILE]
-   CALL  _fclose
-   ADD   ESP,4
-
-   PUSH  OPEN_FLAG
-   PUSH  SRCNAME
-   CALL _fopen
-   ADD   ESP,8
-   OR   EAX,EAX
-   JZ   NOFILE
-   ;SAVE FILE HANDLE
-   MOV   [SRCFILE],EAX
+   PUSH SEEK_SET
+   PUSH 0
+   PUSH [SRCFILE]
+   CALL _fseek
+   ADD ESP,12
 
    XOR   EAX,EAX
    MOV   [COUNT],AL
@@ -2747,7 +2775,7 @@ FINI:
    OR BYTE[LSTDEV],1
    CALL  PRTCNT
    MOV   EBX,SYMSIZE
-   MOV   EAX,[6]
+   MOV   EAX,HEAP_START
    SUB   EAX,[_HEAP]     ;Size of symbol table
    CALL  PRNT10
    MOV   EBX,FRESIZE
@@ -2774,8 +2802,6 @@ HEXEND:
    CALL  PUTCHR
    MOV   AL,10
    CALL  PUTCHR
-   MOV   AL,1AH
-   CALL  PUTCHR
    CALL  WRTHEX      ;Flush HEX file buffer
    PUSH  [HEXFILE]
    CALL  _fclose
@@ -2795,7 +2821,7 @@ DOSYMTAB:
 ENDSYM:
    TEST  BYTE[LSTDEV],80H  ;Print listing to file?
    JZ EXIT
-   MOV   AL,1AH
+   XOR AL,AL
    CALL  WRTBUF      ;Write end-of-file mark
    MOV   EDI,[LSTPNT]
    CALL  FLUSHBUF
@@ -2812,9 +2838,12 @@ EXIT:
 NODE:
    XCHG  EDX,EBX
    PUSH  EBX
+XOR EDX,EDX
    MOV   DL,[EBX]
-   MOV   DH,0
-   INC   EBX
+	INC   EBX
+	INC   EBX
+	INC   EBX
+	INC   EBX
    ADD   EBX,EDX
    MOV   EDX,[EBX]
    OR EDX,EDX
@@ -3823,7 +3852,7 @@ NDPY:
 	DB	"l2xp", '1'+ 080H
 	DB	1,0F9H
 
-
+ALIGN 4
 OPTAB:
 ; Table of pointers  to mnemonics. For each letter of the alphabet (the
 ; starting letter of the mnemonic), there are 5 entries. Each entry
@@ -3968,7 +3997,7 @@ OPTAB:
    DD NONE
    DD NONE
    DD NONE
-
+ALIGN 4
 NDPTAB:
 ;Lookup table for 8087 mnemonics. There is one entry for each letter of the
 ;alphabet
@@ -4052,9 +4081,9 @@ EXTEND:	DB	'.ASM',0,0
 IFEND:	DB	5,'endif'
 IFNEST:	DB	2,'if'
 RETSTR:	DB	're', 't'+ 080H
-
-OPEN_FLAG  DB 'r',0
-WRITE_FLAG DB 'w',0
+;NOTICE: should use rb to make length correct
+OPEN_FLAG  DB 'rb',0
+WRITE_FLAG DB 'wb',0
 
 REGTAB  DB 'bdca'
 SEGTAB  DB 'dsce'
@@ -4062,7 +4091,7 @@ SEGTAB  DB 'dsce'
 SRCNAME  TIMES (NAME_LENGTH + 2) DB 0
 
 SRCNAME_LENGTH DD 0
-
+SRCLENGTH DD 0
 SRCFILE  DD 0
 HEXFILE  DD 0
 LSTFILE  DD 0
@@ -4073,7 +4102,8 @@ LSTNAME  TIMES (NAME_LENGTH + 2) DB 0
 ALIGN 4
 MAXFLG  DB 0
 FLAG    DB 0
-LENID   DB 0
+;4+80
+LENID   DD 0	;USE 4 BYTES
 ID      TIMES 80 DB 0
 ALIGN 4
 PC      DD 0
@@ -4085,7 +4115,7 @@ _DATA   DD 0
 DLABEL  DD 0
 CON     DD 0
 UNDEF   DD 0
-CHR     DD 0
+CHR     DD -1
 SYM     DD 0
 BASE    DD 0
 _HEAP   DD 0
@@ -4118,15 +4148,16 @@ HEXPNT  DD 0
 LSTPNT  DD 0
 STACK_  DD 0
 LINE_COUNT DD 1
-OVERALL_CHAR_POS DD 0
+CHAR_LOCATION DD 0
 LAST_READ_CHAR_COUNT DD 0
 TOTAL_READ_CHAR_COUNT DD 0
-CURRENT_CHAR_MAX_DELTA_POS DD 0
-CHAR_POS_ADVANCED DD 0
+SRCBUF_COUNT DD 0
 HEXBUF  TIMES HEXBUFSIZ DB 0
 LSTBUF  TIMES LSTBUFSIZ DB 0
+ALIGN 4
 BUFPT   DD 0
 SRCBUF  TIMES BUFSIZ DB 0
+		DD 0
         TIMES 100H DB 0
 ALIGN 4
 CODE_START TIMES 10000H DB 0
