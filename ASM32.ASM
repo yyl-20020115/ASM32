@@ -379,6 +379,7 @@ MAKFIL_RET:
 CREATE_FILE ENDP
 
 ASM32_ENTRY@8:
+ENTRY PROC
    MOV   EAX,[ESP+4]  ;Get argc
    MOV   ECX,[ESP+8]  ;Get argv pointer
 
@@ -386,8 +387,9 @@ ASM32_ENTRY@8:
 	CALL DOINIT
 	CALL PLINES
 	CALL _END
-
+	CALL FINI
 	RET
+ENTRY ENDP
 
 MROPS PROC
 ; Get two operands and check for certain types, according to flag byte
@@ -496,7 +498,7 @@ XRG:
    POP   ECX    ;Dump return address
    JMP   PUTADD      ;Write the address
 
-NOTAC:
+NOTAC PROC
    MOV   AL,BH
    AND   AL,1     ;Get byte/word bit
    AND   AL,CL    ;But don't use it in word-only operations
@@ -509,7 +511,7 @@ NOTAC:
    OR AL,DL    ;Combine register field
    POP   ECX    ;Dump return address
    JMP   PUTADD      ;Write the address
-
+NOTAC ENDP
 STERR:
    MOV   DH,29
 MRERR:
@@ -2755,7 +2757,9 @@ RNGERR:
    MOV   [_ERR],101 ;Value out of range
    JMP OBJBT
 
-FINIJ:   JMP   FINI
+FINIJ:  
+	RET ;
+;JMP   FINI
 
 EMARK:
    CMP   AL,-1    ;End of file?
@@ -3061,8 +3065,6 @@ XOR EDX,EDX
    MOV   DL,[EBX]
 	INC   EBX
 	INC   EBX
-	INC   EBX
-	INC   EBX
    ADD   EBX,EDX
    MOV   EDX,[EBX]
    OR EDX,EDX
@@ -3306,7 +3308,7 @@ WRTHEX PROC
    PUSH  EDX
    CALL  fwrite
    ADD   ESP,16
-   OR AL,AL
+   OR EAX,EAX
    JNZ   WRTHEX_RET
    CALL DSKFUL
 WRTHEX_RET:
@@ -3333,8 +3335,9 @@ FLUSHBUF PROC ;EDI FLUSH SIZE
    PUSH  EDX
    CALL fwrite
    ADD   ESP,16
-   OR AL,AL
-   JNZ FLUSHBUF_RET
+   OR EAX,EAX
+   JZ FLUSHBUF_RET
+   RET
 FLUSHBUF_RET:
 	CALL DSKFUL
 	RET
