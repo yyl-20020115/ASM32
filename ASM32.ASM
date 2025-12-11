@@ -236,7 +236,6 @@ NEXTCHR PROC
    OR    EAX,EAX
    ;COUNT ALL READ BYTES
    ;
-   JZ    FOUND_EOF
    MOV   [LAST_READ_CHAR_COUNT],EAX
    ADD   [TOTAL_READ_CHAR_COUNT],EAX
 
@@ -253,6 +252,9 @@ NEXTCHR PROC
    POP   EAX    ;Restore AH
    ;MOV   AL,DL    ;Error code back in AL
    POP   EDX
+   CMP   [LAST_READ_CHAR_COUNT],0
+   JZ    FOUND_EOF
+
 GETCH:
 ;EAX=PTR 
    LODSB
