@@ -264,6 +264,10 @@
       <ErrorReporting Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">3</ErrorReporting>
       <ErrorReporting Condition="'$(Configuration)|$(Platform)'=='Release|x64'">3</ErrorReporting>
     </MASM>
+    <None Include="OASM.ASM">
+      <FileType>Document</FileType>
+    </None>
+    <None Include="OASM.ASM.BAK" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="ASM32MAIN.c" />

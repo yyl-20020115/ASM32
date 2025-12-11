@@ -67,9 +67,7 @@ EXTERN fclose :PROC
 EXTERN feof :PROC
 EXTERN fseek :PROC
 EXTERN ftell :PROC
-;REAL_START:
-    ;int argc, char* argv[]
-    ;ecx, eax
+
 PUBLIC ASM32_ENTRY@8
 DOPRE PROC
 
@@ -212,6 +210,18 @@ NEXTCHR PROC
    CMP   ESI,OFFSET SRCBUF
    JNZ   GETCH
 ;Buffer empty so refill it
+   PUSH ECX
+   PUSH EAX
+   PUSH EDI
+   MOV AL, 0
+   MOV EDI, OFFSET SRCBUF
+   MOV ECX, BUFSIZ
+   REP STOSB
+   POP EDI
+   POP EAX
+   POP ECX
+
+
    PUSH  EDX
    PUSH  EAX    ;AH must be saved
 
@@ -221,9 +231,12 @@ NEXTCHR PROC
    PUSH  ESI
    CALL fread
    ADD   ESP,16
+   
+   
    OR    EAX,EAX
    ;COUNT ALL READ BYTES
    ;
+   JZ    FOUND_EOF
    MOV   [LAST_READ_CHAR_COUNT],EAX
    ADD   [TOTAL_READ_CHAR_COUNT],EAX
 
@@ -258,8 +271,7 @@ GETCH:
    CMP ECX,[SRCLENGTH]
    POP ECX
    JNZ    SKIP_FOUND_END
-   
-   ;USE 0 to replace 1A (even it it 1A)
+FOUND_EOF:   
    MOV [BUFPT],ESI
    MOV AL,1AH      ;Possibly signal End of File
    MOV   [CHR],AL
@@ -1354,7 +1366,7 @@ SKIP_ABORT:
    REP   MOVSB       ;Move identifier and length into node
    
    MOV   EBX,EDI
-   MOV   EDX,ESI
+   MOV   EDX,ESI 
    XOR   EAX,EAX
    STOSD ;LEFT LINK
    STOSD ;RIGHT LINK
@@ -4366,11 +4378,11 @@ LSTBUF  DB LSTBUFSIZ DUP(0)
 ALIGN 4
 BUFPT   DD 0
 SRCBUF  DB BUFSIZ DUP(0)
-		DD 0
+ALIGN 4
         DB 100H DUP(0)
 ALIGN 4
-CODE_START DB 100000H DUP(0)
-HEAP_START DB 100000H DUP(0)
+CODE_START DB 1000000H DUP(0)
+HEAP_START DB 1000000H DUP(0)
 
 ;DATASEG ENDS
 ;		END REAL_START

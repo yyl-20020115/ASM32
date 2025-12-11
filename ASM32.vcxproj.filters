@@ -27,4 +27,12 @@
       <Filter>源文件</Filter>
     </MASM>
   </ItemGroup>
+  <ItemGroup>
+    <None Include="OASM.ASM">
+      <Filter>源文件</Filter>
+    </None>
+    <None Include="OASM.ASM.BAK">
+      <Filter>源文件</Filter>
+    </None>
+  </ItemGroup>
 </Project>
