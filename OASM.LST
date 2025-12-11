@@ -1,0 +1,161 @@
+0000                        0001 ; Seattle Computer Products 8086 Assembler  version 2.44
+0000                        0002 ;   by Tim Paterson
+0000                        0003 ; Runs on the 8086 under MS-DOS
+0000                        0004 
+***** ERROR:  Illegal character in label or opcode
+0000                        0005 ;* * * * * * REVISION HISTORY * * * * * *
+0000                        0006 ;
+0000                        0007 ; 12/29/80  2.01  General release with 86-DOS version 0.34
+0000                        0008 ; 02/22/81  2.10  Increased buffer size from 128 bytes to 1024 bytes
+0000                        0009 ; 03/18/81  2.11  General cleanup and more documentation
+0000                        0010 ; 03/24/81  2.20  Modify ESC handling for full 8087 operation
+0000                        0011 ; 04/01/81  2.21  Fix date in HEX and PRN files; modify buffer handling
+0000                        0012 ; 04/03/81  2.22  Fix 2.21 buffer handling
+0000                        0013 ; 04/13/81  2.23  Re-open source file for listing to allow assembling CON:
+0000                        0014 ; 04/28/81  2.24  Allow nested IFs
+0000                        0015 ; 07/30/81  2.25  Add Intel string mnemonics; clean up a little
+0000                        0016 ; 08/02/81  2.30  Re-write pass 2:
+0000                        0017 ;			Always report errors to console
+0000                        0018 ;			Exact byte lengths for HEX and PRN files
+0000                        0019 ; 11/08/81  2.40  Add 8087 mnemonics; print full error messages;
+0000                        0020 ;		  allow expressions with *, /, and ()
+0000                        0021 ; 07/04/82  2.41  Fix Intel's 8087 "reverse-bit" bug; don't copy date
+0000                        0022 ; 08/18/82  2.42  Increase stack from 80 to 256 (Damn! Overflowed again!)
+0000                        0023 ; 01/05/83  2.43  Correct over-zealous optimization in 2.42
+0000                        0024 ; 05/09/83  2.44  Add memory usage report
+0000  00 00 0A              0025 ;
+0003  0A 1EBEFEA4
+         0026 ;* * * * * * * * * * * * * * * * * * * * *
+0006  00 0A 00              0027 
+***** ERROR:  Illegal character in label or opcode
+0009  0A 0A                 0028 SYMWID:	EQU	5	;5 symbols per line in dump
+***** ERROR:  Illegal character in label or opcode
+000B                        0029 FCB:	EQU	5CH
+000B  00 00 00              0030 BUFSIZ:	EQU	1024	;Source code buffer
+000E  00                    0031 LSTBUFSIZ:EQU	BUFSIZ	;List file buffer
+000F                        0032 HEXBUFSIZ:EQU	70	;Hex file buffer (26*2 + 5*2 + 3 + EXTRA)
+***** ERROR:  Illegal character in label or opcode
+000F                        0033 EOL:	EQU	13	;ASCII carriage return
+000F  00 00 00              0034 OBJECT:	EQU	100H	;DEFAULT "PUT" ADDRESS
+0012  0C 00 00              0035 
+0015  0A                    0036 ;System call function codes
+***** ERROR:  Illegal character in label or opcode
+0100                        0037 PRINTMES: EQU	9
+***** ERROR:  Illegal character in label or opcode
+0100  EB 34 BE FE           0038 :00011A00E5
+:00011A00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000A0D000A0A000ABCB4C70AB43400    0040 READ:	EQU	20
+0104                        0041 SETDMA:	EQU	26
+***** ERROR:  Illegal character in label or opcode
+0104  00 00 00 00 00 00 00  0042 MAKE:	EQU	22
+     00 00 00 00 00 00 00 
+     00 00 00 00 00 00 00 
+     00 00 00 00 00 00 00 
+     00 00 00 00 00 00 00 
+     00 00 00 00 00 00 00 
+     00 00 00 00 00 00 00 
+     00 00 00 0A 0D 00 0A 
+     0A 00                
+***** ERROR:  F2
+013E  0A BC B4              0043 BLKWRT:	EQU	40
+***** ERROR:  BC
+0141                        0044 
+0141  C7 0A B4 34           0045 ;The following equates define some token values returned by GETSYM
+0145                        0046 UNDEFID:EQU	0	;Undefined identifier (including no nearby RET)
+0145                        0047 CONST:	EQU	1	;Constant (including $)
+***** ERROR:  Illegal character in label or opcode
+0145  00                    0048 REG:	EQU	2	;8-bit register
+***** ERROR:  B4
+0146                        0049 XREG:	EQU	3	;16-bit register (except segment registers)
+***** ERROR:  BB
+0146  11 00 BE B3   000000E8B3A234REG:	EQU	4	;Segment register
+***** ERROR:  34
+014A                        0051 FREG:	EQU	6	;8087 floating point register
+***** ERROR:  BB
+014A  00 00                 0052 
+***** ERROR:  AC
+014C  00 E8                 0053 ;Bits to build 8087 opcode table entries
+***** ERROR:  B4
+014E                        0054 ONEREG:	EQU	40H	;Single ST register OK as operand
+***** ERROR:  BA
+014E  B3                    0055 NEEDOP:	EQU	80H	;Must have an operand
+014F                        0056 INTEGER:EQU	20H	;For integer operations
+***** ERROR:  Illegal character in label or opcode
+014F                        0057 REAL:	EQU	28H	;For real operations
+***** ERROR:  32
+014F                        0058 EXTENDED EQU	10H	;For Long integers or Temporary real
+***** ERROR:  C0
+014F  A2 34                 0059 MEMORY:	EQU	18H	;For general memory operations
+***** ERRO1A  BA
+0151                        0060 STACKOP:EQU	10H	;Two register arithmetic with pop
+0151  CC 0A AC 00 31        0061 ARITH:	EQU	8	;Non-pop arithmetic operations
+01567499
+:00016D0092
+:00016D00FEF20AA200030AB4000C3C00747134B8B79E1C7434B731B4** ERROR:  B9
+0157                        0064 	PUT	100H
+***** ERROR:  A9
+0157  FE F2 0A A2           0065 
+***** ERROR:  B4
+015B                        0066 	JMPS	BEGIN
+***** ERROR:  B8
+015B  00 03 0A B4 00 0C 3C  0067 
+     00 74 71 34 B8       
+***** ERROR:  B4
+740A  B7 9E                 0068 HEADER:	DB	13,10,'Seattle Computer Products 8086 Assembler Version 2.44'
+***** ERROR:  C3
+740C                        0069 	DB	13,10,'Copyright 1979-1983 by Seattle Computer Products, Inc.'
+***** ERROR:  Illegal character in label or opcode
+740C                        0070 	DB	13,10,13,10,'$'
+***** ERROR:  3C
+740C                        0071 
+740C  1C 74 34 B7 31        0072 BEGIN:
+3C0A                        0073 	MOV	SP,STACK
+3C0A  B4                    0074 	MOV	DX,HEADER
+***** ERROR:  B6
+3C0B  96 FE 0A B4 80        0075 	MOV	AH,PRINTMES
+***** ERROR:  Illegal character in label or opcode
+3C10  A2                    0076 	INT	33
+***** ERROR:  34
+3C1A                        0077 	MOV	AL,[FCB+17]
+***** ERROR:  B6
+3C000ABEB3B40AA532DC
+:000193006C
+:00019300A5B50003CD21C00Aol table request flag
+3C16                        0079 	MOV	SI,FCB+9	;Point to file extension
+3C16  0A A5 32 A5           0080 	LODB			;Get source drive letter
+3C1A                        0081 	CALL	CHKDSK		;Valid drive?
+***** ERROR:  BA
+3C1A  B5                    0082 	OR	AL,AL
+3C1B  00 03 CD 21           0083 	JZ	DEFAULT		;If no extension, use existing drive spec
+***** ERROR:  Illegal character in label or opcode
+3C1F                        0084 	MOV	[FCB],AL
+***** ERROR:  Opcode not recognized
+3C1F  C0 0A                 0085 DEFAULT:
+***** ERROR:  E9
+3C21                        0086 	LODB			;Get HEX file drive letter
+***** ERROR:  B2
+3C21                        0087 	CMP	AL,'Z'		;Suppress HEX file?
+***** ERROR:  B4
+3C21                        0088 	JZ	L0000
+***** ERROR:  82
+3C21  FE 0A                 0089 	CALL	CHKDSK
+***** ERROR:  34
+3C23                        0090 L0000:	
+***** ERROR:  B4
+3C23                        0091 	MOV	[HEXFCB],AL
+***** ERROR:  7F
+3C23  FE                    0092 	LODB			;E8FEA3B30000B2rive letter
+***** ERROR:  Illegal character in label or opcode
+3C24  E8                    0093 	MOV	AH,0		;Signal no PRN file
+***** ERROR:  B4
+3C25                        0094 	CMP	AL,'Z'		;Suppress PRN file?
+***** ERROR:  B3
+3C25  FE                    0095 	JZ	NOPRN
+***** ERROR:  Illegal character in label or opcode
+3C26                        0096 	CMP	AL,'Y'		;Print errors only on console?
+3C26  A3 B3                 0097 	JZ	NOPRN
+***** ERROR:  Opcode not recognized
+3C28  00 00                 0098 	MOV	AH,2
+3C2A                        0099 	CMP	AL,'X'		;PRN file to console?
+***** ERROR:  B4
+3C2A  B2                    0100 	JZ	NOPRN
+***** ERRO
